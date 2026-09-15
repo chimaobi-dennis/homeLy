@@ -28,8 +28,15 @@ Local Studio: http://127.0.0.1:54323 · Local mail catcher: http://127.0.0.1:543
 
 ## Routes
 
-| Route                    | Status                       |
-|--------------------------|------------------------------|
-| `/landlord/apply`        | placeholder (form TBD)       |
-| `/staff/invite/[token]`  | placeholder (accept flow TBD)|
-| `/waitlist`              | placeholder (anonymous form TBD) |
+| Route                     | Status                                                     |
+|---------------------------|------------------------------------------------------------|
+| `/landlord/apply`         | trust-first landing (fees, process, maintenance disclosure) |
+| `/landlord/apply/form`    | application wizard + document upload                        |
+| `/landlord/dashboard`     | landlord status view, resubmit paths                        |
+| `/login`                  | email + password sign-in for all roles                      |
+| `/admin/landlords`        | admin-only review list / detail (KYC, agreement, property)  |
+| `/staff/invite/[token]`   | placeholder (accept flow TBD)                               |
+| `/waitlist`               | placeholder (anonymous form TBD)                            |
+
+Notifications and the Flowmono e-signature call are stubs: set nothing and watch the
+dev server console for `[notifyLandlord STUB]` / `[flowmono STUB]` lines.

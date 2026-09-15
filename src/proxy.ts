@@ -2,13 +2,14 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabasePublishableKey, getSupabaseUrl } from "@/lib/supabase/env";
 
+/** Paths that need a signed-in session. Role checks happen server-side in layouts/actions. */
+const PROTECTED_PREFIXES = ["/admin", "/landlord/dashboard"];
+
 /**
- * Refreshes the Supabase Auth session on every request and writes any rotated
- * tokens back to the response cookies. Server Components cannot set cookies,
- * so without this step sessions would silently expire.
+ * 1. Refreshes the Supabase Auth session on every request and writes rotated
+ *    tokens back to the response cookies (Server Components cannot set cookies).
+ * 2. Sends signed-out visitors of protected areas to /login.
  *
- * No route protection yet — there are no protected pages in this session.
- * Admin / staff / landlord route guards will be added here in a later session.
  * Tenants never have a session (the waitlist is anonymous), so nothing here
  * applies to /waitlist beyond being a no-op.
  */
@@ -31,7 +32,18 @@ export async function proxy(request: NextRequest) {
   });
 
   // Triggers lazy session initialisation and, if needed, a token refresh.
-  await supabase.auth.getClaims();
+  const { data } = await supabase.auth.getClaims();
+  const signedIn = Boolean(data?.claims);
+
+  const { pathname, search } = request.nextUrl;
+  const isProtected = PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+
+  if (isProtected && !signedIn) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = `?next=${encodeURIComponent(pathname + search)}`;
+    return NextResponse.redirect(url);
+  }
 
   return response;
 }

@@ -60,12 +60,18 @@ Three kinds of **real auth accounts** (Supabase Auth, email + password):
 
 ## Schema (see `supabase/migrations/` for the source of truth)
 
-- `profiles` — id → auth.users, full_name, role_tags[]
+- `profiles` — id → auth.users, full_name, phone, role_tags[]
 - `landlords` — id → profiles, country_of_residence, status
-  (applied | kyc_pending | kyc_verified | kyc_rejected), assigned_ops_contact → profiles
+  (applied | kyc_pending | kyc_verified | kyc_rejected), assigned_ops_contact → profiles,
+  kyc_rejection_reason, agreement_status (not_sent | pending_signature | signed)
 - `properties` — landlord_id → landlords, address, city (default Enugu), bedrooms,
   target_annual_rent, maintenance_threshold_ngn (default 150000), status
-  (submitted | under_inspection | listed | rejected)
+  (submitted | under_inspection | listed | rejected), rejection_reason
+- `landlord_documents` — landlord_id → landlords, property_id → properties (nullable),
+  document_type (id_document | proof_of_ownership), storage_path (unique, must be under
+  `<landlord_id>/`), original_filename, mime_type, size_bytes, uploaded_at
+- Storage bucket `landlord-documents` (PRIVATE, 10 MiB, jpeg/png/webp/pdf). Object key
+  layout `<landlord uuid>/<document_type>/<uuid>-<filename>`. Signed URLs only, ever.
 - `staff_invites` — email, role_tags[] (bd/inspector), invited_by → profiles,
   token (unique, DB-generated), status (pending | accepted | revoked | expired), expires_at
 - `waitlist_entries` — name, whatsapp_number, email, joined_at, email_confirmed,
@@ -76,8 +82,14 @@ Three kinds of **real auth accounts** (Supabase Auth, email + password):
 - `profiles`: own row select/update; admin selects all. `role_tags` change → admin/service only.
 - `landlords`: landlord selects/updates own row, may insert own row (status forced
   to `applied`); staff+admin select all; admin inserts/updates any.
-  `status` and `assigned_ops_contact` → admin/service role only (trigger).
-- `properties`: same shape keyed on `landlord_id`; `status` → admin/service only.
+  `status`, `assigned_ops_contact`, `kyc_rejection_reason`, `agreement_status`
+  → admin/service role only (trigger).
+- `properties`: same shape keyed on `landlord_id`; `status`, `landlord_id`,
+  `rejection_reason` → admin/service only.
+- `landlord_documents`: landlord selects/inserts own rows; staff+admin select all;
+  no client update/delete.
+- `storage.objects` (bucket `landlord-documents`): landlord inserts into and reads
+  own folder; staff+admin read all; no update/delete; bucket is private.
 - `staff_invites`: admin-only select/insert/update. Nobody else can read it —
   the public invite page must resolve tokens server-side.
 - `waitlist_entries`: anon + authenticated may INSERT only `name, whatsapp_number,
@@ -85,6 +97,43 @@ Three kinds of **real auth accounts** (Supabase Auth, email + password):
 - "Protected" columns are enforced by BEFORE triggers that call
   `is_privileged_writer()` — so the service role, direct DB connections and
   admin users pass; everyone else gets `42501`.
+
+## Landlord onboarding (Step 2, built 2026-09-15)
+
+Routes:
+- `/landlord/apply` — trust-first landing (ops lead placeholder, inspection steps,
+  fee sheet from `src/lib/fees.ts`, autonomous-maintenance disclosure). No inputs.
+- `/landlord/apply/form` — wizard (`application-wizard.tsx`): account → property →
+  maintenance threshold → review → documents. Account step is skipped when signed in.
+- `/landlord/dashboard` — landlord's own status view. Never silent: every status has a
+  label + plain-language sentence (`src/lib/status-labels.ts`) + next action, rejection
+  reasons, and resubmit paths.
+- `/login` — email + password for every role; redirects by role (`homePathFor`).
+- `/admin/landlords`, `/admin/landlords/[id]` — internal review screens (no polish).
+  `src/app/admin/layout.tsx` runs `requireAdminPage()`: signed-out → /login, non-admin → 404.
+- `src/proxy.ts` redirects signed-out visitors of `/admin/*` and `/landlord/dashboard`.
+
+Write path rules (keep these):
+- Landlord writes (`landlords`, `properties`, `landlord_documents`, storage uploads)
+  run AS THE LANDLORD through RLS — `src/app/landlord/actions.ts`.
+- Protected columns (status / reasons / agreement_status) are flipped ONLY in server
+  actions that first re-read the caller's role_tags from the DB via their own session
+  (`assertAdminAction` / `assertLandlordAction` in `src/lib/auth.ts`), then write with
+  the service role (`createAdminClient`) scoped to the exact row + expected prior state.
+  Client-supplied roles are never trusted. Admin actions: `src/app/admin/landlords/actions.ts`.
+- Landlord-initiated status flips: `submitForReview` (applied|kyc_rejected → kyc_pending,
+  requires both document types) and `resubmitProperty` (rejected → submitted).
+- Uploads go browser → Storage directly (session cookie → storage RLS), then
+  `recordDocument` verifies the object is readable by the caller before inserting metadata.
+- Signed URLs are created with the VIEWER's own session (owner or staff/admin policy),
+  10-minute expiry. Nothing is ever served from a public bucket.
+- `notifyLandlord()` (`src/lib/notifications.ts`) wraps every status-change email. Without
+  `RESEND_API_KEY` it logs a `[notifyLandlord STUB]` block; with it, it still does not send
+  (TODO(resend)) and warns loudly. It never throws.
+- `sendAgreementForSigning()` (`src/lib/agreements/flowmono.ts`) is a STUB with the TODO
+  marking where the Flowmono call goes. Admin flips pending_signature → signed by hand.
+
+Placeholder copy lives in `src/lib/content/enugu-ops.ts` (square brackets = replace me).
 
 ## Integrations — NOT built yet
 
@@ -97,7 +146,7 @@ where they will plug in. Do not add integration code unless asked.
 1. **End every session with a full plain-text summary** of every file created or
    changed and every decision made — even if not asked for that turn. Include
    every migration and RLS policy touched, and flag anything guessed instead of
-   silently assuming.
+   silently assuming. Confirm which git commits were made.
 2. Schema changes go in a new migration file, never by editing an applied one
    and never by ad-hoc SQL. Regenerate types afterwards.
 3. Never weaken an RLS policy or grant to "make something work" — fix the query

@@ -17,9 +17,15 @@ export default function Home() {
           Property management for Enugu
         </h1>
         <p className="mt-3 max-w-md text-zinc-600 dark:text-zinc-400">
-          Foundation build. Feature pages are placeholders until later sessions.
+          Landlord onboarding is live. Staff invites and the tenant waitlist are still placeholders.
         </p>
       </div>
+      <p className="text-sm">
+        <Link href="/login" className="underline underline-offset-4">
+          Sign in
+        </Link>{" "}
+        <span className="text-zinc-500">(landlords, staff, admin)</span>
+      </p>
       <ul className="flex w-full max-w-md flex-col gap-2">
         {routes.map((r) => (
           <li key={r.href}>

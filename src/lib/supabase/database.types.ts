@@ -9,28 +9,85 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      landlord_documents: {
+        Row: {
+          document_type: Database["public"]["Enums"]["landlord_document_type"]
+          id: string
+          landlord_id: string
+          mime_type: string
+          original_filename: string
+          property_id: string | null
+          size_bytes: number
+          storage_path: string
+          uploaded_at: string
+        }
+        Insert: {
+          document_type: Database["public"]["Enums"]["landlord_document_type"]
+          id?: string
+          landlord_id: string
+          mime_type: string
+          original_filename: string
+          property_id?: string | null
+          size_bytes: number
+          storage_path: string
+          uploaded_at?: string
+        }
+        Update: {
+          document_type?: Database["public"]["Enums"]["landlord_document_type"]
+          id?: string
+          landlord_id?: string
+          mime_type?: string
+          original_filename?: string
+          property_id?: string | null
+          size_bytes?: number
+          storage_path?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "landlord_documents_landlord_id_fkey"
+            columns: ["landlord_id"]
+            isOneToOne: false
+            referencedRelation: "landlords"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "landlord_documents_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       landlords: {
         Row: {
+          agreement_status: Database["public"]["Enums"]["landlord_agreement_status"]
           assigned_ops_contact: string | null
           country_of_residence: string | null
           created_at: string
           id: string
+          kyc_rejection_reason: string | null
           status: Database["public"]["Enums"]["landlord_status"]
           updated_at: string
         }
         Insert: {
+          agreement_status?: Database["public"]["Enums"]["landlord_agreement_status"]
           assigned_ops_contact?: string | null
           country_of_residence?: string | null
           created_at?: string
           id: string
+          kyc_rejection_reason?: string | null
           status?: Database["public"]["Enums"]["landlord_status"]
           updated_at?: string
         }
         Update: {
+          agreement_status?: Database["public"]["Enums"]["landlord_agreement_status"]
           assigned_ops_contact?: string | null
           country_of_residence?: string | null
           created_at?: string
           id?: string
+          kyc_rejection_reason?: string | null
           status?: Database["public"]["Enums"]["landlord_status"]
           updated_at?: string
         }
@@ -56,6 +113,7 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          phone: string | null
           role_tags: string[]
           updated_at: string
         }
@@ -63,6 +121,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id: string
+          phone?: string | null
           role_tags?: string[]
           updated_at?: string
         }
@@ -70,6 +129,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          phone?: string | null
           role_tags?: string[]
           updated_at?: string
         }
@@ -84,6 +144,7 @@ export type Database = {
           id: string
           landlord_id: string
           maintenance_threshold_ngn: number
+          rejection_reason: string | null
           status: Database["public"]["Enums"]["property_status"]
           target_annual_rent: number
           updated_at: string
@@ -96,6 +157,7 @@ export type Database = {
           id?: string
           landlord_id: string
           maintenance_threshold_ngn?: number
+          rejection_reason?: string | null
           status?: Database["public"]["Enums"]["property_status"]
           target_annual_rent: number
           updated_at?: string
@@ -108,6 +170,7 @@ export type Database = {
           id?: string
           landlord_id?: string
           maintenance_threshold_ngn?: number
+          rejection_reason?: string | null
           status?: Database["public"]["Enums"]["property_status"]
           target_annual_rent?: number
           updated_at?: string
@@ -211,6 +274,8 @@ export type Database = {
       is_staff_or_admin: { Args: never; Returns: boolean }
     }
     Enums: {
+      landlord_agreement_status: "not_sent" | "pending_signature" | "signed"
+      landlord_document_type: "id_document" | "proof_of_ownership"
       landlord_status:
         | "applied"
         | "kyc_pending"
@@ -350,6 +415,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      landlord_agreement_status: ["not_sent", "pending_signature", "signed"],
+      landlord_document_type: ["id_document", "proof_of_ownership"],
       landlord_status: [
         "applied",
         "kyc_pending",

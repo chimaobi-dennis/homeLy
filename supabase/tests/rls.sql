@@ -18,7 +18,8 @@ insert into auth.users (instance_id,id,aud,role,email,encrypted_password,email_c
  ('00000000-0000-0000-0000-000000000000','10000000-0000-4000-8000-0000000000a2','authenticated','authenticated','t-staff@test.local','x',now(),'{"role_tags":["bd","inspector"]}','{"full_name":"T Staff"}',now(),now(),'','','','','','','',''),
  ('00000000-0000-0000-0000-000000000000','10000000-0000-4000-8000-0000000000a3','authenticated','authenticated','t-landlord-a@test.local','x',now(),'{}','{"full_name":"T Landlord A"}',now(),now(),'','','','','','','',''),
  ('00000000-0000-0000-0000-000000000000','10000000-0000-4000-8000-0000000000a4','authenticated','authenticated','t-landlord-b@test.local','x',now(),'{}','{"full_name":"T Landlord B"}',now(),now(),'','','','','','','',''),
- ('00000000-0000-0000-0000-000000000000','10000000-0000-4000-8000-0000000000a5','authenticated','authenticated','t-new@test.local','x',now(),'{}','{"full_name":"  "}',now(),now(),'','','','','','','','');
+ ('00000000-0000-0000-0000-000000000000','10000000-0000-4000-8000-0000000000a5','authenticated','authenticated','t-new@test.local','x',now(),'{}','{"full_name":"  "}',now(),now(),'','','','','','','',''),
+ ('00000000-0000-0000-0000-000000000000','10000000-0000-4000-8000-0000000000a6','authenticated','authenticated','t-phone@test.local','x',now(),'{}','{"full_name":"T Phone","phone":"+2348000000006"}',now(),now(),'','','','','','','','');
 
 do $$ begin
   assert (select role_tags from public.profiles where id='10000000-0000-4000-8000-0000000000a1') = '{admin}', 'trigger: admin tags from app_metadata';
@@ -26,6 +27,7 @@ do $$ begin
   assert (select role_tags from public.profiles where id='10000000-0000-4000-8000-0000000000a3') = '{landlord}', 'trigger: default tag is landlord';
   assert (select full_name from public.profiles where id='10000000-0000-4000-8000-0000000000a1') = 'T Admin', 'trigger: full_name from user_metadata';
   assert (select full_name from public.profiles where id='10000000-0000-4000-8000-0000000000a5') is null, 'trigger: blank full_name becomes null';
+  assert (select phone from public.profiles where id='10000000-0000-4000-8000-0000000000a6') = '+2348000000006', 'trigger: phone copied from user_metadata';
   raise notice 'PASS trigger: profiles auto-created with correct role_tags';
 end $$;
 
@@ -43,6 +45,8 @@ insert into public.waitlist_entries (id, name, whatsapp_number, email) values
 do $$ begin
   assert (select length(token) from public.staff_invites where id='30000000-0000-4000-8000-000000000001') = 64, 'staff_invites.token default is 64 hex chars';
   assert (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' and not c.relrowsecurity) = 0, 'every public table has RLS enabled';
+  assert (select public from storage.buckets where id='landlord-documents') = false, 'landlord-documents bucket is private';
+  assert (select file_size_limit from storage.buckets where id='landlord-documents') = 10485760, 'bucket size limit 10 MiB';
   raise notice 'PASS schema: token default + RLS enabled everywhere';
 end $$;
 
@@ -54,7 +58,7 @@ select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-0000000
 set local role authenticated;
 do $$ declare n int; ok boolean; begin
   assert public.is_admin(), 'admin: is_admin()';
-  assert (select count(*) from public.profiles where id::text like '10000000-%') = 5, 'admin: selects all profiles';
+  assert (select count(*) from public.profiles where id::text like '10000000-%') = 6, 'admin: selects all profiles';
   assert (select count(*) from public.landlords where id::text like '10000000-%') = 2, 'admin: selects all landlords';
   assert (select count(*) from public.properties where id::text like '20000000-%') = 2, 'admin: selects all properties';
   assert (select count(*) from public.staff_invites where id::text like '30000000-%') = 1, 'admin: selects staff_invites';
@@ -267,6 +271,102 @@ do $$ declare n int; begin
   get diagnostics n = row_count; assert n = 1, 'service_role: updates role_tags';
   assert (select count(*) from public.staff_invites where id::text like '30000000-%') = 1, 'service_role: reads staff_invites';
   raise notice 'PASS service_role';
+end $$;
+
+-- ===========================================================================
+-- STEP 2: documents, storage bucket policies, agreement / rejection guards
+-- ===========================================================================
+reset role;
+select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-0000000000a3","role":"authenticated"}', true);
+set local role authenticated;
+do $$ declare n int; ok boolean; begin
+  -- Storage: upload into own folder only
+  insert into storage.objects (bucket_id, name) values ('landlord-documents', '10000000-0000-4000-8000-0000000000a3/id_document/id.pdf');
+  ok := false;
+  begin insert into storage.objects (bucket_id, name) values ('landlord-documents', '10000000-0000-4000-8000-0000000000a4/id_document/id.pdf');
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'landlord: cannot upload into another landlord folder';
+  assert (select count(*) from storage.objects where bucket_id='landlord-documents') = 1, 'landlord: sees only own objects';
+  ok := false;
+  begin delete from storage.objects where bucket_id='landlord-documents';
+  exception when insufficient_privilege then ok := true; end;
+  if not ok then get diagnostics n = row_count; assert n = 0, 'landlord: cannot delete objects'; end if;
+
+  -- landlord_documents metadata
+  insert into public.landlord_documents (landlord_id, document_type, storage_path, original_filename, mime_type, size_bytes)
+  values ('10000000-0000-4000-8000-0000000000a3','id_document','10000000-0000-4000-8000-0000000000a3/id_document/id.pdf','id.pdf','application/pdf',1234);
+  ok := false;
+  begin insert into public.landlord_documents (landlord_id, document_type, storage_path, original_filename, mime_type, size_bytes)
+        values ('10000000-0000-4000-8000-0000000000a3','id_document','10000000-0000-4000-8000-0000000000a4/id_document/x.pdf','x.pdf','application/pdf',1);
+  exception when check_violation then ok := true; end;
+  assert ok, 'landlord_documents: path must be under owner folder';
+  ok := false;
+  begin insert into public.landlord_documents (landlord_id, document_type, storage_path, original_filename, mime_type, size_bytes)
+        values ('10000000-0000-4000-8000-0000000000a4','id_document','10000000-0000-4000-8000-0000000000a4/id_document/x.pdf','x.pdf','application/pdf',1);
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'landlord_documents: cannot insert for another landlord';
+  assert (select count(*) from public.landlord_documents) = 1, 'landlord_documents: sees own row only';
+  ok := false;
+  begin update public.landlord_documents set original_filename='y';
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'landlord_documents: no client update';
+
+  -- New protected columns
+  ok := false;
+  begin update public.landlords set agreement_status='signed' where id='10000000-0000-4000-8000-0000000000a3';
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'landlord: cannot change agreement_status';
+  ok := false;
+  begin update public.landlords set kyc_rejection_reason='x' where id='10000000-0000-4000-8000-0000000000a3';
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'landlord: cannot change kyc_rejection_reason';
+  ok := false;
+  begin update public.properties set rejection_reason='x' where id='20000000-0000-4000-8000-000000000001';
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'landlord: cannot change property rejection_reason';
+  raise notice 'PASS step2 landlord: documents + storage + guards';
+end $$;
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-0000000000a2","role":"authenticated"}', true);
+set local role authenticated;
+do $$ declare ok boolean; begin
+  assert (select count(*) from public.landlord_documents) = 1, 'staff: reads all landlord_documents';
+  assert (select count(*) from storage.objects where bucket_id='landlord-documents') = 1, 'staff: reads all objects in bucket';
+  ok := false;
+  begin insert into storage.objects (bucket_id, name) values ('landlord-documents', '10000000-0000-4000-8000-0000000000a2/id_document/id.pdf');
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'staff: cannot upload to landlord-documents';
+  ok := false;
+  begin insert into public.landlord_documents (landlord_id, document_type, storage_path, original_filename, mime_type, size_bytes)
+        values ('10000000-0000-4000-8000-0000000000a3','id_document','10000000-0000-4000-8000-0000000000a3/id_document/s.pdf','s.pdf','application/pdf',1);
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'staff: cannot insert landlord_documents';
+  raise notice 'PASS step2 staff: read-only on documents';
+end $$;
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-0000000000a1","role":"authenticated"}', true);
+set local role authenticated;
+do $$ declare n int; begin
+  update public.landlords set agreement_status='pending_signature', kyc_rejection_reason='needs clearer ID' where id='10000000-0000-4000-8000-0000000000a3';
+  get diagnostics n = row_count; assert n = 1, 'admin: sets agreement_status + rejection reason';
+  update public.properties set rejection_reason='no C of O' where id='20000000-0000-4000-8000-000000000001';
+  get diagnostics n = row_count; assert n = 1, 'admin: sets property rejection_reason';
+  assert (select count(*) from storage.objects where bucket_id='landlord-documents') = 1, 'admin: reads bucket objects';
+  raise notice 'PASS step2 admin: protected columns writable';
+end $$;
+
+reset role;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+set local role anon;
+do $$ declare ok boolean; begin
+  assert (select count(*) from storage.objects where bucket_id='landlord-documents') = 0, 'anon: sees no objects';
+  ok := false;
+  begin insert into storage.objects (bucket_id, name) values ('landlord-documents', 'x/id_document/id.pdf');
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'anon: cannot upload';
+  raise notice 'PASS step2 anon: no storage access';
 end $$;
 
 reset role;
