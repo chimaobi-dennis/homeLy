@@ -36,7 +36,9 @@ insert into public.landlords (id, country_of_residence, status, assigned_ops_con
  ('10000000-0000-4000-8000-0000000000a4','United Kingdom','applied',null);
 insert into public.properties (id, landlord_id, address, bedrooms, target_annual_rent) values
  ('20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-0000000000a3','1 Test Street, Independence Layout',2,1500000),
- ('20000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-0000000000a4','2 Test Street, GRA',3,2500000);
+ ('20000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-0000000000a4','2 Test Street, GRA',3,2500000),
+ ('20000000-0000-4000-8000-000000000003','10000000-0000-4000-8000-0000000000a3','3 Rejected Street, Trans Ekulu',1,500000);
+update public.properties set status='rejected', rejection_reason='fixture' where id='20000000-0000-4000-8000-000000000003';
 insert into public.staff_invites (id, email, role_tags, invited_by) values
  ('30000000-0000-4000-8000-000000000001','invitee@test.local','{bd}','10000000-0000-4000-8000-0000000000a1');
 insert into public.waitlist_entries (id, name, whatsapp_number, email) values
@@ -60,7 +62,7 @@ do $$ declare n int; ok boolean; begin
   assert public.is_admin(), 'admin: is_admin()';
   assert (select count(*) from public.profiles where id::text like '10000000-%') = 6, 'admin: selects all profiles';
   assert (select count(*) from public.landlords where id::text like '10000000-%') = 2, 'admin: selects all landlords';
-  assert (select count(*) from public.properties where id::text like '20000000-%') = 2, 'admin: selects all properties';
+  assert (select count(*) from public.properties where id::text like '20000000-%') = 3, 'admin: selects all properties';
   assert (select count(*) from public.staff_invites where id::text like '30000000-%') = 1, 'admin: selects staff_invites';
   assert (select count(*) from public.waitlist_entries where id::text like '40000000-%') = 1, 'admin: selects waitlist';
 
@@ -102,7 +104,7 @@ do $$ declare n int; ok boolean; begin
   assert public.has_role('bd') and public.has_role('inspector'), 'staff: holds both tags';
   assert (select count(*) from public.profiles where id::text like '10000000-%') = 1, 'staff: sees only own profile';
   assert (select count(*) from public.landlords where id::text like '10000000-%') = 2, 'staff: selects all landlords';
-  assert (select count(*) from public.properties where id::text like '20000000-%') = 2, 'staff: selects all properties';
+  assert (select count(*) from public.properties where id::text like '20000000-%') = 3, 'staff: selects all properties';
   assert (select count(*) from public.staff_invites) = 0, 'staff: cannot read staff_invites';
   assert (select count(*) from public.waitlist_entries where id::text like '40000000-%') = 1, 'staff: selects waitlist';
 
@@ -134,7 +136,7 @@ do $$ declare n int; ok boolean; begin
   assert (select count(*) from public.profiles where id::text like '10000000-%') = 1, 'landlord: sees only own profile';
   assert (select count(*) from public.landlords where id::text like '10000000-%') = 1, 'landlord: sees only own landlord row';
   assert (select id from public.landlords where id::text like '10000000-%') = '10000000-0000-4000-8000-0000000000a3', 'landlord: own row is the visible one';
-  assert (select count(*) from public.properties where id::text like '20000000-%') = 1, 'landlord: sees only own properties';
+  assert (select count(*) from public.properties where id::text like '20000000-%') = 2, 'landlord: sees only own properties';
   assert (select count(*) from public.staff_invites) = 0, 'landlord: cannot read staff_invites';
   assert (select count(*) from public.waitlist_entries) = 0, 'landlord: cannot read waitlist';
 
@@ -175,8 +177,31 @@ do $$ declare n int; ok boolean; begin
   exception when insufficient_privilege then ok := true; end;
   assert ok, 'landlord: cannot change own property status';
 
-  update public.properties set address='1 Test Street (edited)' where id='20000000-0000-4000-8000-000000000001';
-  get diagnostics n = row_count; assert n = 1, 'landlord: updates own property address';
+  -- Step 3 (A2): p1 is 'listed' (set by admin above) → core fields locked, threshold free.
+  ok := false;
+  begin update public.properties set address='1 Test Street (edited)' where id='20000000-0000-4000-8000-000000000001';
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'landlord: cannot edit address once listed';
+  ok := false;
+  begin update public.properties set bedrooms=9 where id='20000000-0000-4000-8000-000000000001';
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'landlord: cannot edit bedrooms once listed';
+  ok := false;
+  begin update public.properties set target_annual_rent=1 where id='20000000-0000-4000-8000-000000000001';
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'landlord: cannot edit target rent once listed';
+  update public.properties set maintenance_threshold_ngn=99000 where id='20000000-0000-4000-8000-000000000001';
+  get diagnostics n = row_count; assert n = 1, 'landlord: maintenance threshold editable while listed';
+  -- p3 is 'rejected' and not yet resubmitted → same lock (quiet edits are not the resubmit path).
+  ok := false;
+  begin update public.properties set city='Elsewhere' where id='20000000-0000-4000-8000-000000000003';
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'landlord: cannot quietly edit a rejected property';
+  update public.properties set maintenance_threshold_ngn=77000 where id='20000000-0000-4000-8000-000000000003';
+  get diagnostics n = row_count; assert n = 1, 'landlord: maintenance threshold editable while rejected';
+  -- Still 'submitted' → core fields editable.
+  update public.properties set address='3 New St (edited)', bedrooms=2 where address='3 New St';
+  get diagnostics n = row_count; assert n = 1, 'landlord: edits core fields while submitted';
   update public.properties set address='hacked' where id='20000000-0000-4000-8000-000000000002';
   get diagnostics n = row_count; assert n = 0, 'landlord: cannot update other landlord property';
 
@@ -267,6 +292,9 @@ do $$ declare n int; begin
   get diagnostics n = row_count; assert n = 1, 'service_role: updates waitlist flags';
   update public.landlords set status='kyc_pending' where id='10000000-0000-4000-8000-0000000000a5';
   get diagnostics n = row_count; assert n = 1, 'service_role: updates landlord status';
+  update public.properties set address='3 Rejected Street (corrected)', status='submitted', rejection_reason=null
+   where id='20000000-0000-4000-8000-000000000003' and status='rejected';
+  get diagnostics n = row_count; assert n = 1, 'service_role: atomic resubmit passes the core-field lock';
   update public.profiles set role_tags='{bd}' where id='10000000-0000-4000-8000-0000000000a5';
   get diagnostics n = row_count; assert n = 1, 'service_role: updates role_tags';
   assert (select count(*) from public.staff_invites where id::text like '30000000-%') = 1, 'service_role: reads staff_invites';
@@ -306,6 +334,15 @@ do $$ declare n int; ok boolean; begin
   exception when insufficient_privilege then ok := true; end;
   assert ok, 'landlord_documents: cannot insert for another landlord';
   assert (select count(*) from public.landlord_documents) = 1, 'landlord_documents: sees own row only';
+  -- Step 3 (A1): proof of ownership may only point at one of MY properties.
+  ok := false;
+  begin insert into public.landlord_documents (landlord_id, property_id, document_type, storage_path, original_filename, mime_type, size_bytes)
+        values ('10000000-0000-4000-8000-0000000000a3','20000000-0000-4000-8000-000000000002','proof_of_ownership','10000000-0000-4000-8000-0000000000a3/proof_of_ownership/p.pdf','p.pdf','application/pdf',1);
+  exception when check_violation then ok := true; end;
+  assert ok, 'landlord_documents: cannot attach a document to another landlord property';
+  insert into public.landlord_documents (landlord_id, property_id, document_type, storage_path, original_filename, mime_type, size_bytes)
+  values ('10000000-0000-4000-8000-0000000000a3','20000000-0000-4000-8000-000000000001','proof_of_ownership','10000000-0000-4000-8000-0000000000a3/proof_of_ownership/p.pdf','p.pdf','application/pdf',1);
+  assert (select count(*) from public.landlord_documents) = 2, 'landlord_documents: proof attached to own property';
   ok := false;
   begin update public.landlord_documents set original_filename='y';
   exception when insufficient_privilege then ok := true; end;
@@ -331,8 +368,8 @@ reset role;
 select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-0000000000a2","role":"authenticated"}', true);
 set local role authenticated;
 do $$ declare ok boolean; begin
-  assert (select count(*) from public.landlord_documents) = 1, 'staff: reads all landlord_documents';
-  assert (select count(*) from storage.objects where bucket_id='landlord-documents') = 1, 'staff: reads all objects in bucket';
+  assert (select count(*) from public.landlord_documents where storage_path like '10000000-%') = 2, 'staff: reads all landlord_documents';
+  assert (select count(*) from storage.objects where bucket_id='landlord-documents' and name like '10000000-%') = 1, 'staff: reads all objects in bucket';
   ok := false;
   begin insert into storage.objects (bucket_id, name) values ('landlord-documents', '10000000-0000-4000-8000-0000000000a2/id_document/id.pdf');
   exception when insufficient_privilege then ok := true; end;
@@ -353,7 +390,7 @@ do $$ declare n int; begin
   get diagnostics n = row_count; assert n = 1, 'admin: sets agreement_status + rejection reason';
   update public.properties set rejection_reason='no C of O' where id='20000000-0000-4000-8000-000000000001';
   get diagnostics n = row_count; assert n = 1, 'admin: sets property rejection_reason';
-  assert (select count(*) from storage.objects where bucket_id='landlord-documents') = 1, 'admin: reads bucket objects';
+  assert (select count(*) from storage.objects where bucket_id='landlord-documents' and name like '10000000-%') = 1, 'admin: reads bucket objects';
   raise notice 'PASS step2 admin: protected columns writable';
 end $$;
 

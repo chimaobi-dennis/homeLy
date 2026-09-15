@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { resubmitProperty, submitForReview } from "@/app/landlord/actions";
+import { resubmitProperty, submitForReview, updateMaintenanceThreshold } from "@/app/landlord/actions";
 import { formatNgn } from "@/lib/fees";
 
 const input = "w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900";
@@ -122,6 +122,56 @@ export function PropertyResubmitForm({
           Cancel
         </button>
       </div>
+    </form>
+  );
+}
+
+/** Maintenance limit is not inspection-linked: editable at any status. */
+export function MaintenanceThresholdForm({ propertyId, current }: { propertyId: string; current: number | string }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(String(current));
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  if (!open) {
+    return (
+      <button type="button" className="text-sm underline underline-offset-4" onClick={() => setOpen(true)}>
+        Change maintenance limit
+      </button>
+    );
+  }
+
+  return (
+    <form
+      className="flex flex-wrap items-end gap-2 rounded-md border border-zinc-200 p-3 dark:border-zinc-800"
+      onSubmit={(e) => {
+        e.preventDefault();
+        startTransition(async () => {
+          setError(null);
+          const res = await updateMaintenanceThreshold({ propertyId, maintenanceThresholdNgn: value });
+          if (!res.ok) return setError(res.error);
+          setOpen(false);
+          router.refresh();
+        });
+      }}
+    >
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="font-medium">Maximum per repair without asking you (₦)</span>
+        <input className={input} inputMode="numeric" value={value} onChange={(e) => setValue(e.target.value)} />
+        <span className="text-xs text-zinc-500">Currently {formatNgn(current)}. Above this we contact you first.</span>
+      </label>
+      <button type="submit" className={primary} disabled={pending}>
+        {pending ? "Saving…" : "Save"}
+      </button>
+      <button type="button" className="text-sm underline underline-offset-4" onClick={() => setOpen(false)} disabled={pending}>
+        Cancel
+      </button>
+      {error ? (
+        <p role="alert" className="w-full text-sm text-red-700 dark:text-red-300">
+          {error}
+        </p>
+      ) : null}
     </form>
   );
 }

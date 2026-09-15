@@ -160,10 +160,28 @@ export async function recordDocument(input: {
   }
   const filename = requiredText(input.originalFilename, "File name", 255);
   if (typeof filename !== "string") return { ok: false, error: filename.error };
-  const propertyId = input.propertyId ? (isUuid(input.propertyId) ? input.propertyId : null) : null;
-  if (input.propertyId && !propertyId) return { ok: false, error: "Invalid property." };
 
   const supabase = await createClient();
+
+  // Proof of ownership is tied to ONE of the landlord's own properties. With a
+  // single property it defaults to that one; with several, the landlord must
+  // choose. An ID document is never tied to a property.
+  let propertyId: string | null = null;
+  if (input.documentType === "proof_of_ownership") {
+    const { data: owned } = await supabase.from("properties").select("id").eq("landlord_id", profile.id);
+    const ownedIds = (owned ?? []).map((p) => p.id);
+    if (ownedIds.length === 1 && !input.propertyId) {
+      propertyId = ownedIds[0];
+    } else if (ownedIds.length > 0) {
+      if (!input.propertyId) {
+        return { ok: false, error: "Choose which property this proof of ownership is for." };
+      }
+      if (!isUuid(input.propertyId) || !ownedIds.includes(input.propertyId)) {
+        return { ok: false, error: "That property is not one of yours." };
+      }
+      propertyId = input.propertyId;
+    }
+  }
 
   // Prove the object exists and is readable by this landlord (owner-read storage policy).
   const { error: signErr } = await supabase.storage
@@ -289,26 +307,70 @@ export async function resubmitProperty(input: {
   if (!property) return { ok: false, error: "Property not found." };
   if (property.status !== "rejected") return { ok: false, error: "Only a rejected property can be resubmitted." };
 
-  // Non-protected columns: written as the landlord, under RLS.
-  const { error: updErr } = await supabase
-    .from("properties")
-    .update({ address, city, bedrooms, target_annual_rent: rent, maintenance_threshold_ngn: threshold })
-    .eq("id", property.id);
-  if (updErr) return { ok: false, error: updErr.message };
-
-  // Protected columns: service role, scoped to this exact row + state.
+  // Core fields are locked by the guard trigger while status <> 'submitted'
+  // (Step 3, A2), so the correction and the status flip happen together in ONE
+  // service-role update scoped to this exact row and prior state. Ownership and
+  // state were verified above through the landlord's own session. This is the
+  // deliberate, "loud" edit path: status resets and the reason is cleared.
   const admin = createAdminClient();
-  const { error } = await admin
+  const { data: updated, error } = await admin
     .from("properties")
-    .update({ status: "submitted", rejection_reason: null })
+    .update({
+      address,
+      city,
+      bedrooms,
+      target_annual_rent: rent,
+      maintenance_threshold_ngn: threshold,
+      status: "submitted",
+      rejection_reason: null,
+    })
     .eq("id", property.id)
     .eq("landlord_id", profile.id)
-    .eq("status", "rejected");
+    .eq("status", "rejected")
+    .select("id")
+    .maybeSingle();
   if (error) return { ok: false, error: error.message };
+  if (!updated) return { ok: false, error: "This property is no longer awaiting resubmission." };
 
   revalidatePath("/landlord/dashboard");
   revalidatePath("/admin/landlords");
   return { ok: true, data: null };
+}
+
+// ---------------------------------------------------------------------------
+// maintenance_threshold_ngn is not inspection-linked: editable by the landlord
+// at any status, as the landlord, under RLS (the guard trigger allows it).
+// ---------------------------------------------------------------------------
+export async function updateMaintenanceThreshold(input: {
+  propertyId: string;
+  maintenanceThresholdNgn: number | string;
+}): Promise<ActionResult<{ maintenanceThresholdNgn: number }>> {
+  let profile;
+  try {
+    profile = await assertLandlordAction();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Not signed in." };
+  }
+  if (!isUuid(input.propertyId)) return { ok: false, error: "Invalid property." };
+  const threshold = toMoney(input.maintenanceThresholdNgn);
+  if (threshold === null || threshold < MIN_MAINTENANCE_THRESHOLD_NGN || threshold > MAX_MAINTENANCE_THRESHOLD_NGN) {
+    return { ok: false, error: "Enter a maintenance limit between ₦0 and ₦50,000,000." };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("properties")
+    .update({ maintenance_threshold_ngn: threshold })
+    .eq("id", input.propertyId)
+    .eq("landlord_id", profile.id)
+    .select("id")
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "Property not found." };
+
+  revalidatePath("/landlord/dashboard");
+  revalidatePath("/admin/landlords");
+  return { ok: true, data: { maintenanceThresholdNgn: threshold } };
 }
 
 /** Used by the wizard to decide whether to skip the account step. */

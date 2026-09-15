@@ -276,7 +276,7 @@ export function ApplicationWizard({ session, existingCountry }: { session: Sessi
           </p>
           <DocumentsUploader
             landlordId={landlordId}
-            propertyId={propertyId}
+            properties={propertyId ? [{ id: propertyId, address: `${property.address}, ${property.city}` }] : []}
             documents={docs}
             onUploaded={(d) => setDocs((prev) => [...prev, d])}
           />

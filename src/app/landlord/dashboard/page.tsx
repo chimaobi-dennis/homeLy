@@ -14,7 +14,7 @@ import {
   type DocumentType,
 } from "@/lib/status-labels";
 import { createClient } from "@/lib/supabase/server";
-import { PropertyResubmitForm, SubmitForReviewButton } from "./client-parts";
+import { MaintenanceThresholdForm, PropertyResubmitForm, SubmitForReviewButton } from "./client-parts";
 
 export const metadata: Metadata = { title: "My application · HomeLy" };
 
@@ -69,6 +69,7 @@ export default async function LandlordDashboardPage({
 
   const docs = documents ?? [];
   const props = properties ?? [];
+  const addressById = new Map(props.map((p) => [p.id, p.address]));
   const uploadedTypes = new Set(docs.map((d) => d.document_type));
   const missingDocs = REQUIRED_DOCS.filter((t) => !uploadedTypes.has(t));
   const hasBothDocs = missingDocs.length === 0;
@@ -167,6 +168,9 @@ export default async function LandlordDashboardPage({
               <li key={d.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                 <span>
                   <span className="font-medium">{DOCUMENT_TYPE_LABEL[d.document_type]}</span>
+                  {d.property_id ? (
+                    <span className="text-zinc-500"> · for {addressById.get(d.property_id) ?? "a property you no longer have"}</span>
+                  ) : null}
                   <span className="text-zinc-500"> · {d.original_filename}</span>
                 </span>
                 <span className="flex items-center gap-3 text-zinc-500">
@@ -187,12 +191,13 @@ export default async function LandlordDashboardPage({
           <div className="mt-4">
             <DocumentsUploader
               landlordId={session.id}
-              propertyId={props[0]?.id ?? null}
+              properties={props.map((p) => ({ id: p.id, address: `${p.address}, ${p.city}` }))}
               documents={docs.map((d) => ({
                 id: d.id,
                 document_type: d.document_type,
                 original_filename: d.original_filename,
                 uploaded_at: d.uploaded_at,
+                property_id: d.property_id,
               }))}
             />
           </div>
@@ -223,6 +228,15 @@ export default async function LandlordDashboardPage({
                 <StatusBadge label={ps.label} tone={ps.tone} />
               </div>
               <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300">{ps.description}</p>
+              {p.status === "under_inspection" || p.status === "listed" ? (
+                <p className="mt-2 text-xs text-zinc-500">
+                  Address, bedrooms and target rent are locked while this property is {ps.label.toLowerCase()}, so nobody
+                  inspects or lists something that changes underneath them. Contact us if a detail is wrong.
+                </p>
+              ) : null}
+              <div className="mt-3">
+                <MaintenanceThresholdForm propertyId={p.id} current={p.maintenance_threshold_ngn} />
+              </div>
               {p.status === "rejected" ? (
                 <div className="mt-3 flex flex-col gap-3 rounded-md border border-red-200 bg-red-50 p-4 text-sm dark:border-red-900 dark:bg-red-950/30">
                   <div>

@@ -40,6 +40,7 @@ export default async function AdminLandlordDetailPage({
   const docs = documents ?? [];
   const props = properties ?? [];
   const email = userRes.data.user?.email ?? "—";
+  const addressById = new Map(props.map((p) => [p.id, p.address]));
 
   // Signed URLs via the admin's OWN session (storage policy: staff/admin read all). 10 minutes.
   const signed = new Map<string, string>();
@@ -99,8 +100,10 @@ export default async function AdminLandlordDetailPage({
           {docs.map((d) => (
             <li key={d.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
               <span>
-                <strong>{DOCUMENT_TYPE_LABEL[d.document_type]}</strong> · {d.original_filename} · {d.mime_type} ·{" "}
-                {(d.size_bytes / 1024).toFixed(0)} KB · {new Date(d.uploaded_at).toLocaleString("en-NG")}
+                <strong>{DOCUMENT_TYPE_LABEL[d.document_type]}</strong>
+                {d.property_id ? <> · for {addressById.get(d.property_id) ?? "(unknown property)"}</> : null} ·{" "}
+                {d.original_filename} · {d.mime_type} · {(d.size_bytes / 1024).toFixed(0)} KB ·{" "}
+                {new Date(d.uploaded_at).toLocaleString("en-NG")}
               </span>
               {signed.get(d.id) ? (
                 <a href={signed.get(d.id)} target="_blank" rel="noreferrer" className="underline">
