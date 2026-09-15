@@ -28,6 +28,12 @@ do $$ begin
   assert (select full_name from public.profiles where id='10000000-0000-4000-8000-0000000000a1') = 'T Admin', 'trigger: full_name from user_metadata';
   assert (select full_name from public.profiles where id='10000000-0000-4000-8000-0000000000a5') is null, 'trigger: blank full_name becomes null';
   assert (select phone from public.profiles where id='10000000-0000-4000-8000-0000000000a6') = '+2348000000006', 'trigger: phone copied from user_metadata';
+  -- Step 4: Admin-API path = app_metadata written AFTER insert → profile must follow.
+  update auth.users set raw_app_meta_data = '{"provider":"email","providers":["email"],"role_tags":["bd","inspector"]}'::jsonb
+   where id='10000000-0000-4000-8000-0000000000a6';
+  assert (select role_tags from public.profiles where id='10000000-0000-4000-8000-0000000000a6') = '{bd,inspector}', 'trigger: role_tags synced from later app_metadata update';
+  update auth.users set raw_user_meta_data = raw_user_meta_data || '{"x":1}'::jsonb where id='10000000-0000-4000-8000-0000000000a6';
+  assert (select role_tags from public.profiles where id='10000000-0000-4000-8000-0000000000a6') = '{bd,inspector}', 'trigger: unrelated auth.users update leaves role_tags alone';
   raise notice 'PASS trigger: profiles auto-created with correct role_tags';
 end $$;
 
@@ -71,6 +77,16 @@ do $$ declare n int; ok boolean; begin
   update public.properties set status='listed' where id='20000000-0000-4000-8000-000000000001';
   get diagnostics n = row_count; assert n = 1, 'admin: updates property status';
   insert into public.staff_invites (email, role_tags, invited_by) values ('second@test.local','{bd,inspector}','10000000-0000-4000-8000-0000000000a1');
+  -- Step 4: one pending invite per email (case-insensitive)
+  ok := false;
+  begin insert into public.staff_invites (email, role_tags, invited_by) values ('Invitee@test.local','{inspector}','10000000-0000-4000-8000-0000000000a1');
+  exception when unique_violation then ok := true; end;
+  assert ok, 'admin: second pending invite for same email rejected';
+  -- Step 4: admin cannot call the service-role-only email check
+  ok := false;
+  begin perform public.email_is_registered('t-admin@test.local');
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'admin: email_is_registered is service-role only';
   update public.staff_invites set status='revoked' where id='30000000-0000-4000-8000-000000000001';
   get diagnostics n = row_count; assert n = 1, 'admin: updates staff_invite';
   update public.profiles set full_name='T Admin 2' where id='10000000-0000-4000-8000-0000000000a1';
@@ -284,6 +300,8 @@ do $$ declare ok boolean; begin
   assert ok, 'anon: cannot select properties';
   ok := false; begin perform count(*) from public.staff_invites; exception when insufficient_privilege then ok := true; end;
   assert ok, 'anon: cannot select staff_invites';
+  ok := false; begin perform public.email_is_registered('t-admin@test.local'); exception when insufficient_privilege then ok := true; end;
+  assert ok, 'anon: cannot call email_is_registered';
   raise notice 'PASS anon policies';
 end $$;
 
@@ -304,6 +322,11 @@ do $$ declare n int; begin
   update public.profiles set role_tags='{bd}' where id='10000000-0000-4000-8000-0000000000a5';
   get diagnostics n = row_count; assert n = 1, 'service_role: updates role_tags';
   assert (select count(*) from public.staff_invites where id::text like '30000000-%') = 1, 'service_role: reads staff_invites';
+  assert public.email_is_registered('T-ADMIN@test.local '), 'service_role: email_is_registered true for existing user (case/space-insensitive)';
+  assert not public.email_is_registered('nobody@test.local'), 'service_role: email_is_registered false for unknown email';
+  -- a revoked invite frees the email for a new pending one
+  update public.staff_invites set status='revoked' where email='second@test.local';
+  insert into public.staff_invites (email, role_tags) values ('second@test.local','{bd}');
   raise notice 'PASS service_role';
 end $$;
 

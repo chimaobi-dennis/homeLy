@@ -2,7 +2,6 @@ import Link from "next/link";
 
 const routes = [
   { href: "/landlord/apply", label: "Landlord application", who: "landlords" },
-  { href: "/staff/invite/example-token", label: "Staff invitation", who: "invited staff" },
   { href: "/waitlist", label: "Tenant priority list", who: "renters, no account needed" },
 ] as const;
 
@@ -17,7 +16,7 @@ export default function Home() {
           Property management for Enugu
         </h1>
         <p className="mt-3 max-w-md text-zinc-600 dark:text-zinc-400">
-          Landlord onboarding and the tenant priority list are live. Staff invites are still a placeholder.
+          Landlord onboarding, the tenant priority list and staff invites are live. Staff join by invite link only.
         </p>
       </div>
       <p className="text-sm">

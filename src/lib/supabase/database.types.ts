@@ -268,6 +268,7 @@ export type Database = {
     }
     Functions: {
       current_role_tags: { Args: never; Returns: string[] }
+      email_is_registered: { Args: { p_email: string }; Returns: boolean }
       has_role: { Args: { role_tag: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       is_privileged_writer: { Args: never; Returns: boolean }

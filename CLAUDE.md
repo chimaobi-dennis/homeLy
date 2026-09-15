@@ -54,6 +54,10 @@ Three kinds of **real auth accounts** (Supabase Auth, email + password):
   `on_auth_user_created` trigger (app_metadata is only settable server-side).
   A sign-up with no app_metadata tags becomes `{landlord}`. Only an admin or
   the service role can change `role_tags` afterwards (trigger-enforced).
+  **Gotcha (Step 4):** `auth.admin.createUser()` inserts the row first and writes
+  app_metadata in a second UPDATE, so a second trigger
+  (`on_auth_user_app_metadata_updated`, migration 0014) mirrors later
+  `app_metadata.role_tags` changes into `profiles.role_tags`.
 - Postgres helpers used by RLS: `is_admin()`, `is_staff_or_admin()`,
   `has_role(tag)`, `current_role_tags()`, `is_privileged_writer()`.
   TypeScript mirror: `src/lib/roles.ts`.
@@ -134,9 +138,11 @@ Write path rules (keep these):
   `recordDocument` verifies the object is readable by the caller before inserting metadata.
 - Signed URLs are created with the VIEWER's own session (owner or staff/admin policy),
   10-minute expiry. Nothing is ever served from a public bucket.
-- `notifyLandlord()` (`src/lib/notifications.ts`) wraps every status-change email. Without
-  `RESEND_API_KEY` it logs a `[notifyLandlord STUB]` block; with it, it still does not send
-  (TODO(resend)) and warns loudly. It never throws.
+- `notifyByEmail()` (`src/lib/notifications.ts`) is the ONE outbound-email path;
+  `notifyLandlord()` resolves the landlord's email and delegates to it. Without
+  `RESEND_API_KEY` it logs a `[notify STUB]` block; with it, it still does not send
+  (TODO(resend)) and warns loudly. It never throws. Add new events to
+  `NotificationEvent` rather than creating another stub.
 - `sendAgreementForSigning()` (`src/lib/agreements/flowmono.ts`) is a STUB with the TODO
   marking where the Flowmono call goes. Admin flips pending_signature → signed by hand.
 
@@ -160,6 +166,38 @@ Placeholder copy lives in `src/lib/content/enugu-ops.ts` (square brackets = repl
   page-level `requireAdminPage`.
 - No notification is sent on signup (not in Stage 1). Email/WhatsApp verification
   is an open decision — neither side is implemented.
+
+## Staff invites (Step 4, built 2026-09-15)
+
+- `/admin/staff` (admin-only, page-level `requireAdminPage`): create invite (email +
+  `bd` / `inspector` checkboxes, one account may hold both), list invites with state
+  (Pending / Accepted / Revoked / Expired) and a Revoke action, list staff accounts
+  with Deactivate / Reactivate.
+- Creating an invite: rejects up front if the email belongs to ANY auth user
+  (`public.email_is_registered()`, service-role-only SECURITY DEFINER function,
+  migration 0013); one pending invite per email (partial unique index, 0013);
+  token comes from the DB default (0005); **expiry = 7 days — an assumption
+  (`INVITE_EXPIRY_DAYS` in `src/lib/invites.ts`), not owner-specified**. The invite
+  URL is logged through `notifyByEmail` (stub) AND shown on the page
+  (`?created=<id>`) for manual copy-paste. `NEXT_PUBLIC_SITE_URL` or the request
+  host builds the absolute link (`src/lib/site-url.ts`).
+- Deactivate = `auth.admin.updateUserById(id, { ban_duration: "876000h" })`,
+  reactivate = `"none"`. Nothing is deleted; profile + history stay. Admin accounts
+  and the caller's own account are refused. A banned user's existing access token
+  can live up to its expiry (≤ 1 h), but `getUser()` on every server render rejects
+  banned users immediately.
+- `/staff/invite/[token]` (public): resolves the token server-side with the
+  service role (the table is admin-only under RLS). States: valid → set-password
+  form; accepted / revoked / expired / not-found → distinct messages, no form.
+  Visiting an expired-but-pending link lazily records `status = expired`.
+- Accepting: claims the token atomically (pending → accepted, only while valid),
+  creates the auth user via the Admin API with `app_metadata.role_tags` from the
+  invite (never the self-service sign-up, which would make them a landlord),
+  verifies the profile's role_tags match (corrects if not), notifies via the stub,
+  signs them in and redirects to `/admin/waitlist`. On createUser failure the claim
+  is reverted so the link can be retried.
+- Staff home after login is `/admin/waitlist`; the `/admin` shell shows Landlords
+  and Staff links to admins only.
 
 ## Integrations — NOT built yet
 

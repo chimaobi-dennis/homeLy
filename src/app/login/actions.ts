@@ -19,6 +19,10 @@ export async function signIn(_prev: SignInState, formData: FormData): Promise<Si
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error || !data.user) {
+    // A deactivated (auth-banned) staff account knows its own password; tell it plainly.
+    if (error?.message.toLowerCase().includes("banned")) {
+      return { error: "This account has been deactivated. Contact a HomeLy admin." };
+    }
     return { error: "Email or password is incorrect." };
   }
 

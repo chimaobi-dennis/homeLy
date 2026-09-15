@@ -19,9 +19,14 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
           <nav className="flex items-center gap-4">
             <span className="font-semibold">{admin ? "HomeLy admin" : "HomeLy staff"}</span>
             {admin ? (
-              <Link href="/admin/landlords" className="underline underline-offset-4">
-                Landlords
-              </Link>
+              <>
+                <Link href="/admin/landlords" className="underline underline-offset-4">
+                  Landlords
+                </Link>
+                <Link href="/admin/staff" className="underline underline-offset-4">
+                  Staff
+                </Link>
+              </>
             ) : null}
             <Link href="/admin/waitlist" className="underline underline-offset-4">
               Waitlist
