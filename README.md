@@ -35,8 +35,9 @@ Local Studio: http://127.0.0.1:54323 · Local mail catcher: http://127.0.0.1:543
 | `/landlord/dashboard`     | landlord status view, resubmit paths                        |
 | `/login`                  | email + password sign-in for all roles                      |
 | `/admin/landlords`        | admin-only review list / detail (KYC, agreement, property)  |
+| `/admin/waitlist`         | admin + staff read-only waitlist view                       |
+| `/waitlist`               | public Stage 1 priority-list form (no account)              |
 | `/staff/invite/[token]`   | placeholder (accept flow TBD)                               |
-| `/waitlist`               | placeholder (anonymous form TBD)                            |
 
 Notifications and the Flowmono e-signature call are stubs: set nothing and watch the
 dev server console for `[notifyLandlord STUB]` / `[flowmono STUB]` lines.

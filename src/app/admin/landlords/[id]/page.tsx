@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { StatusBadge } from "@/components/status-badge";
+import { requireAdminPage } from "@/lib/auth";
 import { formatNgn } from "@/lib/fees";
 import { AGREEMENT_STATUS, DOCUMENT_TYPE_LABEL, LANDLORD_STATUS, PROPERTY_STATUS } from "@/lib/status-labels";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -26,6 +27,7 @@ export default async function AdminLandlordDetailPage({
   const { id } = await params;
   const { msg, error } = await searchParams;
   if (!isUuid(id)) notFound();
+  await requireAdminPage(`/admin/landlords/${id}`); // admin-only; staff get 404
 
   const supabase = await createClient(); // admin's own session; RLS lets admin read everything below
   const [{ data: landlord }, { data: profile }, { data: documents }, { data: properties }, userRes] = await Promise.all([

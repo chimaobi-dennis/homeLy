@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { StatusBadge } from "@/components/status-badge";
+import { requireAdminPage } from "@/lib/auth";
 import { AGREEMENT_STATUS, LANDLORD_STATUS, type LandlordStatus } from "@/lib/status-labels";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -15,6 +16,7 @@ export default async function AdminLandlordsPage({
 }: {
   searchParams: Promise<{ status?: string; error?: string }>;
 }) {
+  await requireAdminPage("/admin/landlords"); // staff may enter /admin, but this list is admin-only
   const { status: filter, error } = await searchParams;
   const supabase = await createClient();
 

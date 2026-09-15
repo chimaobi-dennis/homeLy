@@ -53,6 +53,13 @@ export async function requireAdminPage(nextPath = "/admin/landlords"): Promise<S
   return profile;
 }
 
+/** For pages under /admin that staff (bd / inspector) may also use: signed-out → login; other roles → 404. */
+export async function requireStaffOrAdminPage(nextPath = "/admin"): Promise<SessionProfile> {
+  const profile = await requireSession(nextPath);
+  if (!isStaffOrAdmin(profile.roleTags)) notFound();
+  return profile;
+}
+
 /** For server actions: throws instead of redirecting. The caller's role is re-read from the DB every call. */
 export async function assertAdminAction(): Promise<SessionProfile> {
   const profile = await getSessionProfile();
@@ -73,6 +80,6 @@ export async function assertLandlordAction(): Promise<SessionProfile> {
 export function homePathFor(roleTags: readonly string[]): string {
   if (isAdmin(roleTags)) return "/admin/landlords";
   if (hasRole(roleTags, "landlord")) return "/landlord/dashboard";
-  if (isStaffOrAdmin(roleTags)) return "/"; // staff screens arrive in a later step
+  if (isStaffOrAdmin(roleTags)) return "/admin/waitlist"; // staff: read-only waitlist view for now
   return "/";
 }

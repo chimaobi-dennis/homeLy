@@ -246,6 +246,12 @@ select set_config('request.jwt.claims', '{"role":"anon"}', true);
 set local role anon;
 do $$ declare ok boolean; begin
   insert into public.waitlist_entries (name, whatsapp_number, email) values ('Anon Joiner','+234 801 234 5678','anon@test.local');
+  -- Step 3 (B2): one row per email, case-insensitive; same phone is fine.
+  ok := false;
+  begin insert into public.waitlist_entries (name, whatsapp_number, email) values ('Anon Again','+234 801 234 5678','ANON@test.local');
+  exception when unique_violation then ok := true; end;
+  assert ok, 'anon: duplicate email (any case) rejected';
+  insert into public.waitlist_entries (name, whatsapp_number, email) values ('Housemate','+234 801 234 5678','housemate@test.local');
 
   ok := false;
   begin insert into public.waitlist_entries (name, whatsapp_number, email, email_confirmed) values ('Anon','08012345678','a2@test.local',true);

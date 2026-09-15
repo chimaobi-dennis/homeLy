@@ -3,7 +3,7 @@ import Link from "next/link";
 const routes = [
   { href: "/landlord/apply", label: "Landlord application", who: "landlords" },
   { href: "/staff/invite/example-token", label: "Staff invitation", who: "invited staff" },
-  { href: "/waitlist", label: "Tenant waitlist", who: "renters, no account needed" },
+  { href: "/waitlist", label: "Tenant priority list", who: "renters, no account needed" },
 ] as const;
 
 export default function Home() {
@@ -17,7 +17,7 @@ export default function Home() {
           Property management for Enugu
         </h1>
         <p className="mt-3 max-w-md text-zinc-600 dark:text-zinc-400">
-          Landlord onboarding is live. Staff invites and the tenant waitlist are still placeholders.
+          Landlord onboarding and the tenant priority list are live. Staff invites are still a placeholder.
         </p>
       </div>
       <p className="text-sm">

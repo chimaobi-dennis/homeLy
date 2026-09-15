@@ -85,15 +85,18 @@ Three kinds of **real auth accounts** (Supabase Auth, email + password):
   `status`, `assigned_ops_contact`, `kyc_rejection_reason`, `agreement_status`
   → admin/service role only (trigger).
 - `properties`: same shape keyed on `landlord_id`; `status`, `landlord_id`,
-  `rejection_reason` → admin/service only.
+  `rejection_reason` → admin/service only. Once status ≠ `submitted`, the guard
+  trigger also locks `address`, `city`, `bedrooms`, `target_annual_rent` for
+  non-privileged writers (Step 3 A2); `maintenance_threshold_ngn` stays editable.
 - `landlord_documents`: landlord selects/inserts own rows; staff+admin select all;
-  no client update/delete.
+  no client update/delete. Trigger: `property_id` must belong to the same landlord.
 - `storage.objects` (bucket `landlord-documents`): landlord inserts into and reads
   own folder; staff+admin read all; no update/delete; bucket is private.
 - `staff_invites`: admin-only select/insert/update. Nobody else can read it —
   the public invite page must resolve tokens server-side.
 - `waitlist_entries`: anon + authenticated may INSERT only `name, whatsapp_number,
   email` (column-level grant); staff+admin select; no client UPDATE/DELETE.
+  Unique index on `lower(email)` (Step 3); deliberately NO uniqueness on phone.
 - "Protected" columns are enforced by BEFORE triggers that call
   `is_privileged_writer()` — so the service role, direct DB connections and
   admin users pass; everyone else gets `42501`.
@@ -122,7 +125,11 @@ Write path rules (keep these):
   the service role (`createAdminClient`) scoped to the exact row + expected prior state.
   Client-supplied roles are never trusted. Admin actions: `src/app/admin/landlords/actions.ts`.
 - Landlord-initiated status flips: `submitForReview` (applied|kyc_rejected → kyc_pending,
-  requires both document types) and `resubmitProperty` (rejected → submitted).
+  requires both document types) and `resubmitProperty` (rejected → submitted — ONE
+  service-role update carrying the corrected fields, because core fields are
+  trigger-locked while rejected; ownership + state verified first as the landlord).
+- Proof of ownership is tied to one property: the uploader asks which when the
+  landlord has several; `recordDocument` and a DB trigger both check ownership.
 - Uploads go browser → Storage directly (session cookie → storage RLS), then
   `recordDocument` verifies the object is readable by the caller before inserting metadata.
 - Signed URLs are created with the VIEWER's own session (owner or staff/admin policy),
@@ -134,6 +141,25 @@ Write path rules (keep these):
   marking where the Flowmono call goes. Admin flips pending_signature → signed by hand.
 
 Placeholder copy lives in `src/lib/content/enugu-ops.ts` (square brackets = replace me).
+
+## Tenant waitlist — Stage 1 (Step 3, built 2026-09-15)
+
+- `/waitlist` — public form, no auth: name, WhatsApp number, email. Nothing else
+  (no city / apartment type / budget). Server action `joinWaitlist` inserts through
+  the public-insert policy; a duplicate email (23505) is treated as success so the
+  form never reveals whether an address is already on the list. Honeypot field.
+- `/waitlist/joined` — confirmation: no live listings yet, on the priority list,
+  notified by email/WhatsApp when the official queue opens. Copy must never say
+  "search", "browse", "apply for" or "queue for an apartment".
+- There is deliberately NO "check my status" page: tenants have no account, and an
+  email-keyed lookup would leak whether an address is registered.
+- `/admin/waitlist` — read-only list for admin AND staff (bd / inspector): name,
+  contact, joined, days-on-list (computed from `joined_at`), stage. No actions —
+  Stage 2 conversion is a later step. The `/admin` shell now admits staff
+  (`requireStaffOrAdminPage`); `/admin/landlords*` stays admin-only via a
+  page-level `requireAdminPage`.
+- No notification is sent on signup (not in Stage 1). Email/WhatsApp verification
+  is an open decision — neither side is implemented.
 
 ## Integrations — NOT built yet
 
