@@ -26,6 +26,9 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
                 <Link href="/admin/staff" className="underline underline-offset-4">
                   Staff
                 </Link>
+                <Link href="/admin/tenants" className="underline underline-offset-4">
+                  Tenants
+                </Link>
               </>
             ) : null}
             <Link href="/admin/waitlist" className="underline underline-offset-4">

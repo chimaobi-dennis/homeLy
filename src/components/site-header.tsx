@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { getSessionProfile } from "@/lib/auth";
+import { getSessionProfile, homePathFor } from "@/lib/auth";
+import { hasRole, isStaffOrAdmin } from "@/lib/roles";
 import { SignOutButton } from "@/components/sign-out-button";
 
 /** Small header for landlord-facing pages. Shows sign-in or the signed-in email. */
@@ -14,8 +15,14 @@ export async function SiteHeader() {
         </Link>
         {session ? (
           <div className="flex items-center gap-4">
-            <Link href="/landlord/dashboard" className="underline underline-offset-4">
-              My application
+            <Link href={homePathFor(session.roleTags)} className="underline underline-offset-4">
+              {hasRole(session.roleTags, "landlord")
+                ? "My application"
+                : isStaffOrAdmin(session.roleTags)
+                  ? "Admin"
+                  : hasRole(session.roleTags, "tenant")
+                    ? "My status"
+                    : "Home"}
             </Link>
             <span className="text-zinc-500">{session.email}</span>
             <SignOutButton />

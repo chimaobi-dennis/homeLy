@@ -19,8 +19,11 @@ export function isInviteToken(value: unknown): value is string {
 /** What a visitor of the invite link should see. Three distinct non-valid states, never collapsed. */
 export type InviteState = "valid" | "accepted" | "revoked" | "expired";
 
+/** Shared by staff invites and queue-conversion invites (same status vocabulary). */
+export type InviteStatusLike = "pending" | "accepted" | "revoked" | "expired";
+
 export function inviteState(
-  invite: { status: StaffInviteStatus; expires_at: string },
+  invite: { status: InviteStatusLike; expires_at: string },
   nowMs: number = Date.now(),
 ): InviteState {
   if (invite.status === "accepted") return "accepted";
@@ -39,4 +42,9 @@ export const INVITE_STATE_LABEL: Record<InviteState, string> = {
 
 export function invitePath(token: string): string {
   return `/staff/invite/${token}`;
+}
+
+/** Public acceptance URL path for a queue-conversion invite (Step 5). */
+export function conversionInvitePath(token: string): string {
+  return `/waitlist/convert/${token}`;
 }

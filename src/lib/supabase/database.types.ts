@@ -185,6 +185,54 @@ export type Database = {
           },
         ]
       }
+      queue_conversion_invites: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          status: Database["public"]["Enums"]["conversion_invite_status"]
+          token: string
+          updated_at: string
+          waitlist_entry_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          status?: Database["public"]["Enums"]["conversion_invite_status"]
+          token?: string
+          updated_at?: string
+          waitlist_entry_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          status?: Database["public"]["Enums"]["conversion_invite_status"]
+          token?: string
+          updated_at?: string
+          waitlist_entry_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "queue_conversion_invites_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "queue_conversion_invites_waitlist_entry_id_fkey"
+            columns: ["waitlist_entry_id"]
+            isOneToOne: false
+            referencedRelation: "waitlist_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_invites: {
         Row: {
           created_at: string
@@ -225,6 +273,92 @@ export type Database = {
             columns: ["invited_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_documents: {
+        Row: {
+          document_type: Database["public"]["Enums"]["tenant_document_type"]
+          id: string
+          mime_type: string
+          original_filename: string
+          size_bytes: number
+          storage_path: string
+          tenant_id: string
+          uploaded_at: string
+        }
+        Insert: {
+          document_type?: Database["public"]["Enums"]["tenant_document_type"]
+          id?: string
+          mime_type: string
+          original_filename: string
+          size_bytes: number
+          storage_path: string
+          tenant_id: string
+          uploaded_at?: string
+        }
+        Update: {
+          document_type?: Database["public"]["Enums"]["tenant_document_type"]
+          id?: string
+          mime_type?: string
+          original_filename?: string
+          size_bytes?: number
+          storage_path?: string
+          tenant_id?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenants: {
+        Row: {
+          converted_at: string
+          created_at: string
+          id: string
+          kyc_rejection_reason: string | null
+          kyc_status: Database["public"]["Enums"]["tenant_kyc_status"]
+          updated_at: string
+          waitlist_entry_id: string | null
+        }
+        Insert: {
+          converted_at?: string
+          created_at?: string
+          id: string
+          kyc_rejection_reason?: string | null
+          kyc_status?: Database["public"]["Enums"]["tenant_kyc_status"]
+          updated_at?: string
+          waitlist_entry_id?: string | null
+        }
+        Update: {
+          converted_at?: string
+          created_at?: string
+          id?: string
+          kyc_rejection_reason?: string | null
+          kyc_status?: Database["public"]["Enums"]["tenant_kyc_status"]
+          updated_at?: string
+          waitlist_entry_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenants_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenants_waitlist_entry_id_fkey"
+            columns: ["waitlist_entry_id"]
+            isOneToOne: false
+            referencedRelation: "waitlist_entries"
             referencedColumns: ["id"]
           },
         ]
@@ -275,6 +409,7 @@ export type Database = {
       is_staff_or_admin: { Args: never; Returns: boolean }
     }
     Enums: {
+      conversion_invite_status: "pending" | "accepted" | "revoked" | "expired"
       landlord_agreement_status: "not_sent" | "pending_signature" | "signed"
       landlord_document_type: "id_document" | "proof_of_ownership"
       landlord_status:
@@ -284,6 +419,8 @@ export type Database = {
         | "kyc_rejected"
       property_status: "submitted" | "under_inspection" | "listed" | "rejected"
       staff_invite_status: "pending" | "accepted" | "revoked" | "expired"
+      tenant_document_type: "id_document"
+      tenant_kyc_status: "not_started" | "pending" | "verified" | "rejected"
       waitlist_conversion_status:
         | "waitlist"
         | "invited_to_convert"
@@ -416,6 +553,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      conversion_invite_status: ["pending", "accepted", "revoked", "expired"],
       landlord_agreement_status: ["not_sent", "pending_signature", "signed"],
       landlord_document_type: ["id_document", "proof_of_ownership"],
       landlord_status: [
@@ -426,6 +564,8 @@ export const Constants = {
       ],
       property_status: ["submitted", "under_inspection", "listed", "rejected"],
       staff_invite_status: ["pending", "accepted", "revoked", "expired"],
+      tenant_document_type: ["id_document"],
+      tenant_kyc_status: ["not_started", "pending", "verified", "rejected"],
       waitlist_conversion_status: [
         "waitlist",
         "invited_to_convert",

@@ -80,6 +80,15 @@ export async function assertLandlordAction(): Promise<SessionProfile> {
 export function homePathFor(roleTags: readonly string[]): string {
   if (isAdmin(roleTags)) return "/admin/landlords";
   if (hasRole(roleTags, "landlord")) return "/landlord/dashboard";
-  if (isStaffOrAdmin(roleTags)) return "/admin/waitlist"; // staff: read-only waitlist view for now
+  if (isStaffOrAdmin(roleTags)) return "/admin/waitlist";
+  if (hasRole(roleTags, "tenant")) return "/tenant";
   return "/";
+}
+
+/** For server actions on the tenant side (Stage 2 accounts). */
+export async function assertTenantAction(): Promise<SessionProfile> {
+  const profile = await getSessionProfile();
+  if (!profile) throw new Error("Not signed in.");
+  if (!hasRole(profile.roleTags, "tenant")) throw new Error("This account is not a tenant account.");
+  return profile;
 }

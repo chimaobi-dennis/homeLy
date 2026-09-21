@@ -12,7 +12,14 @@ export type LandlordNotificationEvent =
 
 export type StaffNotificationEvent = "staff_invite" | "staff_account_ready";
 
-export type NotificationEvent = LandlordNotificationEvent | StaffNotificationEvent;
+export type TenantNotificationEvent =
+  | "tenant_conversion_invite"
+  | "tenant_account_ready"
+  | "tenant_kyc_submitted"
+  | "tenant_kyc_verified"
+  | "tenant_kyc_rejected";
+
+export type NotificationEvent = LandlordNotificationEvent | StaffNotificationEvent | TenantNotificationEvent;
 
 export type NotifyByEmailInput = {
   /** Recipient address. May be null when it could not be resolved — still logged. */
@@ -83,5 +90,31 @@ export async function notifyLandlord(input: NotifyLandlordInput): Promise<void> 
     subject: input.subject,
     message: input.message,
     context: `landlord ${input.landlordId}`,
+  });
+}
+
+export type NotifyTenantInput = {
+  tenantId: string;
+  event: TenantNotificationEvent;
+  subject: string;
+  message: string;
+};
+
+/** Tenant-facing notifications (Stage 2). Resolves the email, then uses notifyByEmail. */
+export async function notifyTenant(input: NotifyTenantInput): Promise<void> {
+  let email: string | null = null;
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin.auth.admin.getUserById(input.tenantId);
+    email = data.user?.email ?? null;
+  } catch (err) {
+    console.error("[notifyTenant] could not resolve tenant email:", err);
+  }
+  await notifyByEmail({
+    to: email,
+    event: input.event,
+    subject: input.subject,
+    message: input.message,
+    context: `tenant ${input.tenantId}`,
   });
 }

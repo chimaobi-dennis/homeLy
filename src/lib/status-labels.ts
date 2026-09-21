@@ -5,6 +5,8 @@ export type LandlordStatus = Enums["landlord_status"];
 export type PropertyStatus = Enums["property_status"];
 export type AgreementStatus = Enums["landlord_agreement_status"];
 export type DocumentType = Enums["landlord_document_type"];
+export type TenantKycStatus = Enums["tenant_kyc_status"];
+export type TenantDocumentType = Enums["tenant_document_type"];
 
 export type Tone = "neutral" | "info" | "success" | "warning" | "danger";
 
@@ -106,3 +108,38 @@ export const TONE_CLASSES: Record<Tone, string> = {
   warning: "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200",
   danger: "bg-red-100 text-red-900 dark:bg-red-900/40 dark:text-red-200",
 };
+
+/**
+ * Tenant KYC status as the tenant should read it (Stage 2). Never silent.
+ * Tenant-facing: must not say "search", "browse", "apply for" or "queue for an apartment".
+ */
+export const TENANT_KYC_STATUS: Record<TenantKycStatus, StatusLabel> = {
+  not_started: {
+    label: "ID needed",
+    description:
+      "Your account is ready. Upload a government-issued ID so a person on our team can confirm who you are. Nothing is automated.",
+    tone: "info",
+  },
+  pending: {
+    label: "Under review",
+    description:
+      "Our team is checking your ID by hand. This usually takes 1–3 working days. We will email you when it is done.",
+    tone: "warning",
+  },
+  verified: {
+    label: "Verified — active queue member",
+    description:
+      "Your identity is confirmed and you are an active member of the queue. When homes become available we contact you in queue order by email or WhatsApp. Nothing else is needed from you now.",
+    tone: "success",
+  },
+  rejected: {
+    label: "Not confirmed",
+    description:
+      "We could not confirm your identity from the document provided. See the reason below, upload a clearer document, and resubmit.",
+    tone: "danger",
+  },
+};
+
+export const TENANT_ID_DOCUMENT_LABEL = "Government-issued ID";
+export const TENANT_ID_DOCUMENT_HELP =
+  "NIN slip, international passport, driver's licence or voter's card. Photo or PDF, up to 10 MB.";

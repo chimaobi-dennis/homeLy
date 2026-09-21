@@ -35,10 +35,13 @@ Local Studio: http://127.0.0.1:54323 · Local mail catcher: http://127.0.0.1:543
 | `/landlord/dashboard`     | landlord status view, resubmit paths                        |
 | `/login`                  | email + password sign-in for all roles                      |
 | `/admin/landlords`        | admin-only review list / detail (KYC, agreement, property)  |
-| `/admin/waitlist`         | admin + staff read-only waitlist view                       |
+| `/admin/waitlist`         | queue: staff read-only; admin invites entries to convert    |
+| `/admin/tenants`          | admin-only tenant KYC review (verify / reject)              |
+| `/waitlist/convert/[token]` | public: accept a conversion invite → tenant account        |
+| `/tenant`                 | signed-in tenant status, ID upload, resubmit                |
 | `/admin/staff`            | admin-only: invite staff, revoke invites, deactivate staff  |
 | `/waitlist`               | public Stage 1 priority-list form (no account)              |
 | `/staff/invite/[token]`   | public invite acceptance (set password, signs in)           |
 
-Notifications and the Flowmono e-signature call are stubs: set nothing and watch the
-dev server console for `[notify STUB]` / `[flowmono STUB]` lines. Staff invite links are also shown on `/admin/staff` after creation.
+Notifications, the Flowmono e-signature call and Dojah KYC are stubs: set nothing and watch the
+dev server console for `[notify STUB]` / `[flowmono STUB]` / `[dojah STUB]` lines. Staff invite links are also shown on `/admin/staff` after creation.

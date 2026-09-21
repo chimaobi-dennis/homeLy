@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getSupabasePublishableKey, getSupabaseUrl } from "@/lib/supabase/env";
 
 /** Paths that need a signed-in session. Role checks happen server-side in layouts/actions. */
-const PROTECTED_PREFIXES = ["/admin", "/landlord/dashboard"];
+const PROTECTED_PREFIXES = ["/admin", "/landlord/dashboard", "/tenant"];
 
 /**
  * 1. Refreshes the Supabase Auth session on every request and writes rotated

@@ -19,7 +19,8 @@ insert into auth.users (instance_id,id,aud,role,email,encrypted_password,email_c
  ('00000000-0000-0000-0000-000000000000','10000000-0000-4000-8000-0000000000a3','authenticated','authenticated','t-landlord-a@test.local','x',now(),'{}','{"full_name":"T Landlord A"}',now(),now(),'','','','','','','',''),
  ('00000000-0000-0000-0000-000000000000','10000000-0000-4000-8000-0000000000a4','authenticated','authenticated','t-landlord-b@test.local','x',now(),'{}','{"full_name":"T Landlord B"}',now(),now(),'','','','','','','',''),
  ('00000000-0000-0000-0000-000000000000','10000000-0000-4000-8000-0000000000a5','authenticated','authenticated','t-new@test.local','x',now(),'{}','{"full_name":"  "}',now(),now(),'','','','','','','',''),
- ('00000000-0000-0000-0000-000000000000','10000000-0000-4000-8000-0000000000a6','authenticated','authenticated','t-phone@test.local','x',now(),'{}','{"full_name":"T Phone","phone":"+2348000000006"}',now(),now(),'','','','','','','','');
+ ('00000000-0000-0000-0000-000000000000','10000000-0000-4000-8000-0000000000a6','authenticated','authenticated','t-phone@test.local','x',now(),'{}','{"full_name":"T Phone","phone":"+2348000000006"}',now(),now(),'','','','','','','',''),
+ ('00000000-0000-0000-0000-000000000000','10000000-0000-4000-8000-0000000000a7','authenticated','authenticated','t-tenant@test.local','x',now(),'{"role_tags":["tenant"]}','{"full_name":"T Tenant"}',now(),now(),'','','','','','','','');
 
 do $$ begin
   assert (select role_tags from public.profiles where id='10000000-0000-4000-8000-0000000000a1') = '{admin}', 'trigger: admin tags from app_metadata';
@@ -34,6 +35,7 @@ do $$ begin
   assert (select role_tags from public.profiles where id='10000000-0000-4000-8000-0000000000a6') = '{bd,inspector}', 'trigger: role_tags synced from later app_metadata update';
   update auth.users set raw_user_meta_data = raw_user_meta_data || '{"x":1}'::jsonb where id='10000000-0000-4000-8000-0000000000a6';
   assert (select role_tags from public.profiles where id='10000000-0000-4000-8000-0000000000a6') = '{bd,inspector}', 'trigger: unrelated auth.users update leaves role_tags alone';
+  assert (select role_tags from public.profiles where id='10000000-0000-4000-8000-0000000000a7') = '{tenant}', 'trigger: tenant tag accepted (Step 5)';
   raise notice 'PASS trigger: profiles auto-created with correct role_tags';
 end $$;
 
@@ -48,7 +50,10 @@ update public.properties set status='rejected', rejection_reason='fixture' where
 insert into public.staff_invites (id, email, role_tags, invited_by) values
  ('30000000-0000-4000-8000-000000000001','invitee@test.local','{bd}','10000000-0000-4000-8000-0000000000a1');
 insert into public.waitlist_entries (id, name, whatsapp_number, email) values
- ('40000000-0000-4000-8000-000000000001','W One','+2348012345678','w1@test.local');
+ ('40000000-0000-4000-8000-000000000001','W One','+2348012345678','w1@test.local'),
+ ('40000000-0000-4000-8000-000000000002','W Two','+2348012345679','w2@test.local');
+insert into public.tenants (id, waitlist_entry_id, kyc_status) values ('10000000-0000-4000-8000-0000000000a7','40000000-0000-4000-8000-000000000001','pending');
+insert into public.queue_conversion_invites (id, waitlist_entry_id) values ('50000000-0000-4000-8000-000000000001','40000000-0000-4000-8000-000000000002');
 
 do $$ begin
   assert (select length(token) from public.staff_invites where id='30000000-0000-4000-8000-000000000001') = 64, 'staff_invites.token default is 64 hex chars';
@@ -66,11 +71,11 @@ select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-0000000
 set local role authenticated;
 do $$ declare n int; ok boolean; begin
   assert public.is_admin(), 'admin: is_admin()';
-  assert (select count(*) from public.profiles where id::text like '10000000-%') = 6, 'admin: selects all profiles';
+  assert (select count(*) from public.profiles where id::text like '10000000-%') = 7, 'admin: selects all profiles';
   assert (select count(*) from public.landlords where id::text like '10000000-%') = 2, 'admin: selects all landlords';
   assert (select count(*) from public.properties where id::text like '20000000-%') = 3, 'admin: selects all properties';
   assert (select count(*) from public.staff_invites where id::text like '30000000-%') = 1, 'admin: selects staff_invites';
-  assert (select count(*) from public.waitlist_entries where id::text like '40000000-%') = 1, 'admin: selects waitlist';
+  assert (select count(*) from public.waitlist_entries where id::text like '40000000-%') = 2, 'admin: selects waitlist';
 
   update public.landlords set status='kyc_rejected', assigned_ops_contact='10000000-0000-4000-8000-0000000000a2' where id='10000000-0000-4000-8000-0000000000a4';
   get diagnostics n = row_count; assert n = 1, 'admin: updates landlord status';
@@ -122,7 +127,7 @@ do $$ declare n int; ok boolean; begin
   assert (select count(*) from public.landlords where id::text like '10000000-%') = 2, 'staff: selects all landlords';
   assert (select count(*) from public.properties where id::text like '20000000-%') = 3, 'staff: selects all properties';
   assert (select count(*) from public.staff_invites) = 0, 'staff: cannot read staff_invites';
-  assert (select count(*) from public.waitlist_entries where id::text like '40000000-%') = 1, 'staff: selects waitlist';
+  assert (select count(*) from public.waitlist_entries where id::text like '40000000-%') = 2, 'staff: selects waitlist';
 
   ok := false;
   begin insert into public.staff_invites (email, role_tags) values ('x@test.local','{bd}');
@@ -433,6 +438,115 @@ do $$ declare ok boolean; begin
   exception when insufficient_privilege then ok := true; end;
   assert ok, 'anon: cannot upload';
   raise notice 'PASS step2 anon: no storage access';
+end $$;
+
+-- ===========================================================================
+-- STEP 5: tenants, queue_conversion_invites, tenant_documents, tenant bucket
+-- ===========================================================================
+reset role;
+select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-0000000000a7","role":"authenticated"}', true);
+set local role authenticated;
+do $$ declare n int; ok boolean; begin
+  assert public.has_role('tenant') and not public.is_staff_or_admin(), 'tenant: tags';
+  assert (select count(*) from public.tenants) = 1 and (select kyc_status from public.tenants) = 'pending', 'tenant: selects own row only';
+  assert (select count(*) from public.landlords where id::text like '10000000-%') = 0, 'tenant: sees no landlords';
+  assert (select count(*) from public.properties where id::text like '20000000-%') = 0, 'tenant: sees no properties';
+  assert (select count(*) from public.queue_conversion_invites) = 0, 'tenant: cannot read conversion invites';
+  assert (select count(*) from public.waitlist_entries) = 0, 'tenant: cannot read waitlist';
+  -- No UPDATE policy for tenants on their own row at all: RLS matches zero rows
+  -- (the guard trigger is the second line of defence for admin/service paths).
+  update public.tenants set kyc_status='verified' where id='10000000-0000-4000-8000-0000000000a7';
+  get diagnostics n = row_count; assert n = 0, 'tenant: cannot change own kyc_status (no update policy)';
+  update public.tenants set kyc_rejection_reason='x' where id='10000000-0000-4000-8000-0000000000a7';
+  get diagnostics n = row_count; assert n = 0, 'tenant: cannot change kyc_rejection_reason';
+  update public.tenants set waitlist_entry_id=null where id='10000000-0000-4000-8000-0000000000a7';
+  get diagnostics n = row_count; assert n = 0, 'tenant: cannot change waitlist_entry_id';
+  assert (select kyc_status from public.tenants where id='10000000-0000-4000-8000-0000000000a7') = 'pending', 'tenant: row unchanged';
+  -- own ID upload
+  insert into storage.objects (bucket_id, name) values ('tenant-documents', '10000000-0000-4000-8000-0000000000a7/id_document/id.pdf');
+  ok := false;
+  begin insert into storage.objects (bucket_id, name) values ('tenant-documents', '10000000-0000-4000-8000-0000000000a3/id_document/id.pdf');
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'tenant: cannot upload into another folder';
+  ok := false;
+  begin insert into storage.objects (bucket_id, name) values ('landlord-documents', '10000000-0000-4000-8000-0000000000a7/id_document/id.pdf');
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'tenant: cannot upload into the landlord bucket';
+  insert into public.tenant_documents (tenant_id, storage_path, original_filename, mime_type, size_bytes)
+  values ('10000000-0000-4000-8000-0000000000a7','10000000-0000-4000-8000-0000000000a7/id_document/id.pdf','id.pdf','application/pdf',10);
+  assert (select count(*) from public.tenant_documents) = 1, 'tenant: sees own document';
+  ok := false;
+  begin insert into public.tenant_documents (tenant_id, storage_path, original_filename, mime_type, size_bytes)
+        values ('10000000-0000-4000-8000-0000000000a7','10000000-0000-4000-8000-0000000000a3/id_document/x.pdf','x.pdf','application/pdf',1);
+  exception when check_violation then ok := true; end;
+  assert ok, 'tenant_documents: path must be under owner folder';
+  ok := false;
+  begin update public.tenant_documents set original_filename='y';
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'tenant_documents: no client update';
+  raise notice 'PASS step5 tenant policies';
+end $$;
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-0000000000a3","role":"authenticated"}', true);
+set local role authenticated;
+do $$ declare ok boolean; begin
+  assert (select count(*) from public.tenants) = 0, 'landlord: sees no tenants';
+  assert (select count(*) from public.tenant_documents) = 0, 'landlord: sees no tenant documents';
+  ok := false;
+  begin insert into public.tenant_documents (tenant_id, storage_path, original_filename, mime_type, size_bytes)
+        values ('10000000-0000-4000-8000-0000000000a3','10000000-0000-4000-8000-0000000000a3/id_document/x.pdf','x.pdf','application/pdf',1);
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'landlord: cannot insert tenant_documents (no tenant tag)';
+  ok := false;
+  begin insert into storage.objects (bucket_id, name) values ('tenant-documents', '10000000-0000-4000-8000-0000000000a3/id_document/id.pdf');
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'landlord: cannot upload into the tenant bucket';
+  raise notice 'PASS step5 landlord isolation';
+end $$;
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-0000000000a2","role":"authenticated"}', true);
+set local role authenticated;
+do $$ declare n int; begin
+  assert (select count(*) from public.tenants where id::text like '10000000-%') = 1, 'staff: selects all tenants';
+  assert (select count(*) from public.tenant_documents where storage_path like '10000000-%') = 1, 'staff: selects all tenant documents';
+  assert (select count(*) from storage.objects where bucket_id='tenant-documents' and name like '10000000-%') = 1, 'staff: reads tenant bucket objects';
+  assert (select count(*) from public.queue_conversion_invites) = 0, 'staff: cannot read conversion invites';
+  update public.tenants set kyc_rejection_reason='x' where id='10000000-0000-4000-8000-0000000000a7';
+  get diagnostics n = row_count; assert n = 0, 'staff: cannot update tenants';
+  raise notice 'PASS step5 staff read-only';
+end $$;
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-0000000000a1","role":"authenticated"}', true);
+set local role authenticated;
+do $$ declare n int; ok boolean; begin
+  update public.tenants set kyc_status='verified', kyc_rejection_reason=null where id='10000000-0000-4000-8000-0000000000a7';
+  get diagnostics n = row_count; assert n = 1, 'admin: sets tenant kyc_status';
+  assert (select count(*) from public.queue_conversion_invites where id::text like '50000000-%') = 1, 'admin: reads conversion invites';
+  assert (select length(token) from public.queue_conversion_invites where id='50000000-0000-4000-8000-000000000001') = 64, 'conversion invite token default is 64 hex';
+  ok := false;
+  begin insert into public.queue_conversion_invites (waitlist_entry_id) values ('40000000-0000-4000-8000-000000000002');
+  exception when unique_violation then ok := true; end;
+  assert ok, 'admin: one pending conversion invite per entry';
+  update public.queue_conversion_invites set status='revoked' where id='50000000-0000-4000-8000-000000000001';
+  insert into public.queue_conversion_invites (waitlist_entry_id, invited_by) values ('40000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-0000000000a1');
+  raise notice 'PASS step5 admin';
+end $$;
+
+reset role;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+set local role anon;
+do $$ declare ok boolean; begin
+  ok := false; begin perform count(*) from public.tenants; exception when insufficient_privilege then ok := true; end;
+  assert ok, 'anon: cannot select tenants';
+  ok := false; begin perform count(*) from public.queue_conversion_invites; exception when insufficient_privilege then ok := true; end;
+  assert ok, 'anon: cannot select conversion invites';
+  ok := false; begin perform count(*) from public.tenant_documents; exception when insufficient_privilege then ok := true; end;
+  assert ok, 'anon: cannot select tenant_documents';
+  assert (select count(*) from storage.objects where bucket_id='tenant-documents') = 0, 'anon: sees no tenant objects';
+  raise notice 'PASS step5 anon';
 end $$;
 
 reset role;

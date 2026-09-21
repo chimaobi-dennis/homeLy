@@ -45,11 +45,15 @@ Three kinds of **real auth accounts** (Supabase Auth, email + password):
 | admin    | `{admin}`                            | server-side only (Admin API / seed)          |
 | staff    | `{bd}`, `{inspector}` or `{bd,inspector}` — ONE account can hold both | admin invite (`staff_invites`) → server-side |
 | landlord | `{landlord}`                         | self-service sign-up (`/landlord/apply`)     |
+| tenant   | `{tenant}` (may combine with landlord) | Stage 2 only: accepting a queue-conversion invite (`/waitlist/convert/[token]`) |
 
 - `bd` and `inspector` are **tags on one staff account**, not separate account types.
-- **Tenants have NO auth account.** The waitlist (`/waitlist`) is anonymous —
-  public INSERT into `waitlist_entries`, no login. This is deliberate. Do not
-  add tenant auth unless explicitly asked.
+- **Stage 1 tenants have NO auth account.** The waitlist (`/waitlist`) is anonymous —
+  public INSERT into `waitlist_entries`, no login, no KYC. Unchanged in Step 5.
+- **Stage 2 (Step 5):** an admin invites a waitlist entry to convert; accepting the
+  invite creates a real `tenant` account (Admin API, `app_metadata.role_tags`)
+  plus a `tenants` row. Manual ID review follows. Nothing beyond "active queue
+  member" exists yet — no listings, no applying to a unit.
 - `role_tags` are set from `auth.users.raw_app_meta_data.role_tags` by the
   `on_auth_user_created` trigger (app_metadata is only settable server-side).
   A sign-up with no app_metadata tags becomes `{landlord}`. Only an admin or
@@ -80,6 +84,18 @@ Three kinds of **real auth accounts** (Supabase Auth, email + password):
   token (unique, DB-generated), status (pending | accepted | revoked | expired), expires_at
 - `waitlist_entries` — name, whatsapp_number, email, joined_at, email_confirmed,
   whatsapp_confirmed, conversion_status (waitlist | invited_to_convert | kyc_pending | active_queue)
+- `tenants` — id → profiles, waitlist_entry_id → waitlist_entries (nullable, unique
+  when set), kyc_status (not_started | pending | verified | rejected),
+  kyc_rejection_reason, converted_at
+- `queue_conversion_invites` — waitlist_entry_id → waitlist_entries, invited_by →
+  profiles, token (unique, DB-generated), status (pending | accepted | revoked |
+  expired), expires_at (7 days, assumption); one pending invite per entry
+- `tenant_documents` — tenant_id → tenants, document_type (`id_document` only),
+  storage_path (unique, under `<tenant_id>/`), original_filename, mime_type,
+  size_bytes, uploaded_at
+- Storage bucket `tenant-documents` (PRIVATE, 10 MiB, jpeg/png/webp/pdf), key
+  layout `<tenant uuid>/id_document/<uuid>-<filename>`. Separate from
+  `landlord-documents` on purpose.
 
 ## RLS rules (every table has RLS enabled; policies live next to each table's migration)
 
@@ -101,6 +117,13 @@ Three kinds of **real auth accounts** (Supabase Auth, email + password):
 - `waitlist_entries`: anon + authenticated may INSERT only `name, whatsapp_number,
   email` (column-level grant); staff+admin select; no client UPDATE/DELETE.
   Unique index on `lower(email)` (Step 3); deliberately NO uniqueness on phone.
+- `tenants`: tenant selects own row; staff+admin select all; admin inserts/updates
+  any; NO tenant write policy at all. `kyc_status`, `kyc_rejection_reason`,
+  `waitlist_entry_id`, `converted_at` → admin/service only (guard trigger).
+- `queue_conversion_invites`: admin-only select/insert/update, like `staff_invites`.
+- `tenant_documents`: tenant selects/inserts own rows; staff+admin select all; no
+  client update/delete. `storage.objects` (bucket `tenant-documents`): tenant
+  uploads into / reads own folder; staff+admin read all; private bucket.
 - "Protected" columns are enforced by BEFORE triggers that call
   `is_privileged_writer()` — so the service role, direct DB connections and
   admin users pass; everyone else gets `42501`.
@@ -199,11 +222,42 @@ Placeholder copy lives in `src/lib/content/enugu-ops.ts` (square brackets = repl
 - Staff home after login is `/admin/waitlist`; the `/admin` shell shows Landlords
   and Staff links to admins only.
 
+## Tenant accounts + queue conversion — Stage 2 (Step 5, built 2026-09-21)
+
+- `/admin/waitlist` is no longer read-only for admins: "Invite to convert" per entry,
+  "Invite everyone still waiting" bulk, pending-invite links shown inline, Revoke.
+  Staff still see it read-only. Actions in `src/app/admin/waitlist/actions.ts`
+  (admin session for invite rows via RLS; service role only for
+  `waitlist_entries.conversion_status`). Stage mapping: invite → `invited_to_convert`,
+  ID submitted → `kyc_pending` (rejected stays there), verified → `active_queue`,
+  revoked-before-conversion → back to `waitlist`.
+- `/waitlist/convert/[token]` (public): token resolved server-side (service role);
+  valid → create account (email locked to the entry) or, if a signed-in user's
+  email matches, "Continue with this account" (adds the `tenant` tag + `tenants`
+  row to the existing account — a landlord can also be a tenant); accepted /
+  revoked / expired / not-found → distinct messages. Atomic token claim, reverted
+  if user creation fails. New accounts are created via the Admin API with
+  `app_metadata.role_tags = ['tenant']` (self-service sign-up would tag landlord).
+- `/tenant` (signed-in tenants): status in plain language (`TENANT_KYC_STATUS`),
+  ID uploader (browser → `tenant-documents` bucket → `recordTenantDocument`),
+  "Submit / Resubmit for review" → `submitTenantKyc` (calls the Dojah STUB
+  `verifyTenantKyc()` in `src/lib/kyc/dojah.ts`, always manual review, then
+  service-role flip to `pending`). Rejection reason + resubmit path shown.
+- `/admin/tenants` (admin-only): pending/rejected/verified tabs, signed document
+  links, verify / reject-with-reason (`setTenantKyc`, service role, notifies).
+- Notifications: `notifyTenant()` + `TenantNotificationEvent` added to
+  `src/lib/notifications.ts` — same stub core (`notifyByEmail`), no new pattern.
+- Tenant-facing copy follows the waitlist banned-phrase rule ("search", "browse",
+  "apply for", "queue for an apartment").
+- Out of scope, still: listings, applying to a unit, payments, maintenance tickets,
+  changes to Stage 1 signup, automated Dojah calls.
+
 ## Integrations — NOT built yet
 
-Dojah (KYC), Monnify / Flutterwave (payments), Termii (SMS/WhatsApp),
-Resend (email), Flowmono (e-signature). Only `TODO(<vendor>)` comments mark
-where they will plug in. Do not add integration code unless asked.
+Dojah (KYC — `verifyTenantKyc()` stub exists), Monnify / Flutterwave (payments),
+Termii (SMS/WhatsApp), Resend (email — `notifyByEmail()` stub exists), Flowmono
+(e-signature — `sendAgreementForSigning()` stub exists). Only `TODO(<vendor>)`
+comments and stubs mark where they will plug in. Do not add integration code unless asked.
 
 ## Standing rules for Claude
 
@@ -216,4 +270,5 @@ where they will plug in. Do not add integration code unless asked.
 3. Never weaken an RLS policy or grant to "make something work" — fix the query
    or use the service role in trusted server code.
 4. Never send real emails/SMS/WhatsApp from tests or local dev.
-5. Keep tenants account-less unless the owner explicitly changes that decision.
+5. Stage 1 tenants stay account-less. Tenant accounts exist only via Stage 2
+   conversion invites (Step 5); do not add self-service tenant sign-up.
