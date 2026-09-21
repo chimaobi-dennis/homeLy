@@ -1,43 +1,54 @@
+import type { Metadata } from "next";
+import { Fraunces } from "next/font/google";
 import Link from "next/link";
+import { HomeExperience } from "./home-experience";
+import "./home.css";
 
-const routes = [
-  { href: "/landlord/apply", label: "Landlord application", who: "landlords" },
-  { href: "/waitlist", label: "Tenant priority list", who: "renters, no account needed" },
-] as const;
+// Display serif for the homepage only. Geist (loaded in the root layout) stays
+// the sans for body and UI, matching the forms behind this page.
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  variable: "--font-fraunces",
+  axes: ["opsz", "SOFT"],
+});
+
+export const metadata: Metadata = {
+  title: "HomeLy",
+  description:
+    "Verified, inspected rental homes in Enugu. Landlords: management with fees you read first. Tenants: a priority list, no live listings yet.",
+};
 
 export default function Home() {
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-8 px-6 py-24">
-      <div className="text-center">
-        <p className="text-sm font-medium uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
-          HomeLy
-        </p>
-        <h1 className="mt-2 text-4xl font-semibold tracking-tight">
-          Property management for Enugu
-        </h1>
-        <p className="mt-3 max-w-md text-zinc-600 dark:text-zinc-400">
-          Landlord onboarding, the tenant priority list and staff invites are live. Staff join by invite link only.
-        </p>
-      </div>
-      <p className="text-sm">
-        <Link href="/login" className="underline underline-offset-4">
+    <div className={`${fraunces.variable} home flex flex-1 flex-col`}>
+      <header className="mx-auto flex w-full max-w-[76rem] items-center justify-between px-6 py-3 text-sm">
+        <span className="text-[var(--mute)]">Enugu, Nigeria</span>
+        <Link href="/login" className="underline underline-offset-4 hover:text-[var(--verify)]">
           Sign in
-        </Link>{" "}
-        <span className="text-zinc-500">(landlords, staff, admin)</span>
-      </p>
-      <ul className="flex w-full max-w-md flex-col gap-2">
-        {routes.map((r) => (
-          <li key={r.href}>
-            <Link
-              href={r.href}
-              className="flex items-center justify-between rounded-lg border border-zinc-200 px-4 py-3 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
-            >
-              <span className="font-medium">{r.label}</span>
-              <span className="text-sm text-zinc-500">{r.who}</span>
+        </Link>
+      </header>
+
+      <HomeExperience />
+
+      <footer className="border-t border-[var(--rule)]">
+        <div className="mx-auto flex w-full max-w-[76rem] flex-wrap items-center justify-between gap-3 px-6 py-6 text-sm text-[var(--mute)]">
+          <span>
+            <span className="display text-lg text-[var(--ink)]">HomeLy</span> — property management for Enugu
+          </span>
+          <nav className="flex flex-wrap gap-5">
+            <Link href="/landlord/apply" className="underline underline-offset-4 hover:text-[var(--ink)]">
+              For landlords
             </Link>
-          </li>
-        ))}
-      </ul>
-    </main>
+            <Link href="/waitlist" className="underline underline-offset-4 hover:text-[var(--ink)]">
+              Tenant priority list
+            </Link>
+            <Link href="/login" className="underline underline-offset-4 hover:text-[var(--ink)]">
+              Sign in
+            </Link>
+          </nav>
+        </div>
+      </footer>
+    </div>
   );
 }

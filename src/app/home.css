@@ -1,0 +1,254 @@
+/* Homepage-only styles. Everything is scoped under .home so no other route is affected. */
+
+.home {
+  --ink: #14171a;
+  --paper: #f6f5f1;
+  --verify: #1c6b52;
+  --gold: #b8862e;
+  --clay: #9c4a32;
+  --mute: color-mix(in srgb, var(--ink) 64%, var(--paper));
+  --rule: color-mix(in srgb, var(--ink) 18%, var(--paper));
+
+  background: var(--paper);
+  color: var(--ink);
+  color-scheme: light; /* fixed look: the tokens are the brand, not a light/dark theme */
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.home .display {
+  font-family: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  font-variation-settings: "opsz" 96, "SOFT" 40;
+  letter-spacing: -0.012em;
+  line-height: 1.04;
+  text-wrap: balance;
+}
+
+.home .display-italic {
+  font-style: italic;
+}
+
+.home :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* ---------- Hero ---------- */
+
+.home-hero {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "mark"
+    "landlord"
+    "tenant";
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.home-hero__mark {
+  grid-area: mark;
+}
+.home-hero__landlord {
+  grid-area: landlord;
+}
+.home-hero__tenant {
+  grid-area: tenant;
+}
+
+.home-hero__side {
+  padding: 2.25rem 1.5rem 2.5rem;
+}
+
+.home-hero__landlord {
+  border-top: 3px solid var(--verify);
+}
+.home-hero__tenant {
+  border-top: 3px solid var(--clay);
+}
+
+.home-hero__mark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2.5rem 1.5rem 1.75rem;
+}
+
+.home-hero__rule {
+  width: 1px;
+  background: var(--rule);
+  flex: 1 1 auto;
+  min-height: 1.5rem;
+}
+
+.home-seal {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: var(--gold);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--gold) 22%, transparent);
+}
+
+@media (min-width: 900px) {
+  .home-hero {
+    grid-template-columns: minmax(0, 1fr) minmax(11rem, 14rem) minmax(0, 1fr);
+    grid-template-areas: "landlord mark tenant";
+    min-height: 34rem;
+  }
+  .home-hero__side {
+    padding: 3.5rem 3rem 3.75rem;
+  }
+  .home-hero__landlord {
+    padding-left: max(1.5rem, calc((100vw - 76rem) / 2 + 1.5rem));
+  }
+  .home-hero__tenant {
+    padding-right: max(1.5rem, calc((100vw - 76rem) / 2 + 1.5rem));
+  }
+  .home-hero__mark {
+    padding: 2rem 0;
+    border-inline: 1px solid var(--rule);
+  }
+}
+
+/* ---------- Buttons ---------- */
+
+.home-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  padding: 0.75rem 1.25rem;
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1;
+  border-radius: 0.25rem;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.home-btn--verify {
+  background: var(--verify);
+  border-color: var(--verify);
+  color: #fff;
+}
+.home-btn--verify:hover {
+  background: color-mix(in srgb, var(--verify) 88%, var(--ink));
+}
+
+.home-btn--clay {
+  background: transparent;
+  border-color: var(--clay);
+  color: var(--clay);
+}
+.home-btn--clay:hover {
+  background: color-mix(in srgb, var(--clay) 8%, var(--paper));
+}
+
+.home-btn--ink {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+.home-btn--ink:hover {
+  background: color-mix(in srgb, var(--ink) 86%, var(--paper));
+}
+
+.home-btn[aria-pressed="true"] {
+  box-shadow: 0 0 0 3px var(--paper), 0 0 0 5px var(--gold);
+}
+
+/* ---------- Content panels (deliberately not identical cards) ---------- */
+
+.home-panel {
+  border: 1px solid var(--ink);
+  padding: 1.5rem;
+}
+
+.home-ledger {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.home-ledger th,
+.home-ledger td {
+  text-align: left;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+.home-ledger th {
+  font-weight: 500;
+  color: var(--mute);
+  font-size: 0.85rem;
+}
+
+.home-steps {
+  counter-reset: step;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.home-steps > li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  gap: 0.75rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+}
+.home-steps > li::before {
+  content: counter(step) ".";
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-size: 1.25rem;
+  line-height: 1.1;
+  color: var(--gold);
+}
+
+.home-quote {
+  border-left: 2px solid var(--gold);
+  padding-left: 1.25rem;
+}
+
+/* ---------- Persona content transition ---------- */
+
+.home-enter {
+  animation: home-enter 360ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes home-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Still a perceivable change (content swaps, opacity settles) — just no travel and near-instant. */
+  .home-enter {
+    animation-duration: 60ms;
+    animation-name: home-enter-still;
+  }
+  @keyframes home-enter-still {
+    from {
+      opacity: 0.6;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  .home-btn {
+    transition-duration: 1ms;
+  }
+}
