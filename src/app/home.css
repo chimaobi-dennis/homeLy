@@ -1,23 +1,22 @@
 /* Homepage-only styles. Scoped under .home so no other route is affected. Fixed light look.
-   Theme (2026-09-22): bold blue and white. Navy for text and dark bands, cobalt for every
-   action, white surfaces, an ice-blue wash for alternate sections. */
+   Theme (2026-09-22): bold blue and white. ONE blue — the footer navy — for text, nav,
+   buttons, chips, the landlord band and the footer; white surfaces; an ice wash for
+   alternate sections. The hero photo keeps its natural colours under a white veil. */
 
 .home {
   /* Palette */
-  --navy: #0b1f4b;      /* deep navy: headlines, nav, hero, footer */
-  --blue: #1849d6;      /* cobalt: buttons, links, chips, landlord band */
-  --blue-deep: #10339c; /* cobalt hover */
-  --azure: #3b82f6;     /* live accents: halo, focus ring on white */
-  --ice: #eef3ff;       /* light blue wash */
+  --navy: #0b1f4b;       /* the one blue */
+  --navy-hover: #1a3470; /* buttons on hover: a step lighter, never towards black */
+  --ice: #eef3ff;        /* light blue wash */
 
   /* Semantic tokens (components only ever use these) */
   --ink: var(--navy);
   --paper: #ffffff;
-  --verify: var(--blue);
-  --focus: var(--azure); /* focus rings ONLY (3.7:1 on white); flipped to white on navy */
+  --verify: var(--navy);
+  --focus: var(--navy);  /* focus rings ONLY; flipped to white on navy sections */
   --clay: #b3261e;       /* errors */
   --mist: var(--ice);
-  --signal: var(--azure);
+  --signal: var(--navy);
   --mute: color-mix(in srgb, var(--ink) 66%, var(--paper));
   --rule: color-mix(in srgb, var(--ink) 14%, var(--paper));
   --radius: 12px;
@@ -78,7 +77,7 @@
   transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
 }
 .home .pill--verify { background: var(--verify); border-color: var(--verify); color: #fff; }
-.home .pill--verify:hover { background: var(--blue-deep); border-color: var(--blue-deep); }
+.home .pill--verify:hover { background: var(--navy-hover); border-color: var(--navy-hover); }
 .home .pill--paper { background: var(--paper); border-color: var(--paper); color: var(--ink); }
 .home .pill--paper:hover { background: color-mix(in srgb, var(--paper) 88%, var(--ink)); }
 .home .pill--outline { background: transparent; border-color: var(--ink); color: var(--ink); }
@@ -120,58 +119,51 @@
 .home-hero {
   position: relative;
   z-index: 1; /* the search dropdown must paint above the sections below */
-  isolation: isolate; /* keeps the photo's negative z-index inside the hero, and scopes the blend */
-  --ink: #fff;
-  --mute: color-mix(in srgb, #fff 76%, var(--navy));
-  --focus: #fff;
-  color: #fff;
-  background: var(--navy);
+  isolation: isolate; /* keeps the photo's negative z-index inside the hero */
+  background: linear-gradient(180deg, #fff 0%, var(--ice) 100%); /* fallback until the photo paints */
   /* No overflow clipping: the live-search dropdown hangs below the panel. Nothing inside
      bleeds horizontally (halo inset 0; the −40px visual margin only ≥1360px). */
 }
 
-/* The aerial photo as a navy duotone: luminosity blend takes the photo's light and dark from
-   the picture and the hue from the navy behind it. Sharpest under the phone (right). */
+/* The aerial photo in its natural colours: sharp where the phone sits (right), veiled in white
+   where the copy sits (left). */
 .home-hero__bg {
   object-fit: cover;
   object-position: 62% 55%;
   z-index: -2;
-  filter: grayscale(1) contrast(1.08) brightness(0.92);
-  mix-blend-mode: luminosity;
-  opacity: 0.9;
+  filter: saturate(0.95);
 }
 
-/* Legibility veil, not decoration: navy deepens towards the copy side and a cobalt glow sits
-   top-left so the block reads blue, not black. The right third stays clearest for the phone. */
+/* Legibility veil, not decoration: white fades in from the left and up from the bottom so the
+   hero hands over cleanly to the next section. The right third stays nearly clear. */
 .home-hero__veil {
   position: absolute;
   inset: 0;
   z-index: -1;
   pointer-events: none;
   background:
-    linear-gradient(125deg, color-mix(in srgb, var(--blue) 42%, transparent) 0%, transparent 55%),
     linear-gradient(
       90deg,
-      color-mix(in srgb, var(--navy) 90%, transparent) 0%,
-      color-mix(in srgb, var(--navy) 68%, transparent) 42%,
-      color-mix(in srgb, var(--navy) 22%, transparent) 68%,
-      color-mix(in srgb, var(--navy) 8%, transparent) 100%
-    );
+      color-mix(in srgb, #fff 92%, transparent) 0%,
+      color-mix(in srgb, #fff 72%, transparent) 40%,
+      color-mix(in srgb, #fff 22%, transparent) 66%,
+      color-mix(in srgb, #fff 6%, transparent) 100%
+    ),
+    linear-gradient(180deg, transparent 72%, #fff 100%);
 }
 @media (max-width: 767px) {
   .home-hero__veil {
     background:
-      linear-gradient(125deg, color-mix(in srgb, var(--blue) 40%, transparent) 0%, transparent 60%),
-      linear-gradient(180deg, color-mix(in srgb, var(--navy) 86%, transparent) 0%, color-mix(in srgb, var(--navy) 42%, transparent) 60%, color-mix(in srgb, var(--navy) 70%, transparent) 100%);
+      linear-gradient(180deg, color-mix(in srgb, #fff 84%, transparent) 0%, color-mix(in srgb, #fff 40%, transparent) 58%, #fff 100%);
   }
 }
 
-/* Navy glass panel behind the copy + search: white type stays legible over any photo. */
+/* White glass panel behind the copy + search: navy type stays legible over any photo. */
 .home-hero__panel {
-  background: color-mix(in srgb, var(--navy) 52%, transparent);
-  -webkit-backdrop-filter: blur(18px) saturate(1.2);
-  backdrop-filter: blur(18px) saturate(1.2);
-  border: 1px solid color-mix(in srgb, #ffffff 16%, transparent);
+  background: color-mix(in srgb, #fff 80%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+  backdrop-filter: blur(18px) saturate(1.15);
+  border: 1px solid color-mix(in srgb, #ffffff 60%, transparent);
   border-radius: var(--radius);
   padding: 1.5rem 1.25rem;
 }
@@ -207,11 +199,11 @@
   .home-hero__visual { margin-right: -40px; }
 }
 
-/* The one allowed halo: a static cobalt glow behind the phone. */
+/* The one allowed halo: a faint navy glow behind the phone. */
 .home-hero__halo {
   position: absolute;
   inset: 0;
-  background: radial-gradient(60% 60% at 60% 45%, color-mix(in srgb, var(--azure) 30%, transparent) 0%, transparent 70%);
+  background: radial-gradient(60% 60% at 60% 45%, color-mix(in srgb, var(--navy) 10%, transparent) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -222,10 +214,9 @@
   /* White surfaces (bar, pills, dropdown, dialog) always use navy type, even inside the navy hero. */
   --ink: var(--navy);
   --mute: color-mix(in srgb, var(--navy) 66%, #fff);
-  --focus: var(--azure);
+  --focus: var(--navy);
   color: var(--ink);
 }
-.home-hero .home-search__clear { color: #fff; } /* sits on the navy, not on a white pill */
 
 .home-search__bar {
   display: grid;
@@ -239,7 +230,7 @@
 }
 .home-search__bar:focus-within {
   border-color: var(--ink);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--azure) 55%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--navy) 30%, transparent);
 }
 .home-search__icon { color: var(--mute); flex: none; }
 .home-search__input {
@@ -268,7 +259,7 @@
   font-weight: 600;
   font-size: 0.95rem;
 }
-.home-search__submit:hover { background: var(--blue-deep); }
+.home-search__submit:hover { background: var(--navy-hover); }
 .home-search__submit span { display: none; }
 @media (min-width: 480px) {
   .home-search__submit { padding: 0 1.1rem 0 0.9rem; }
@@ -496,11 +487,8 @@
   --ink: var(--navy);
   --mute: color-mix(in srgb, var(--navy) 66%, #fff);
   color: var(--ink);
-  /* One soft device shadow + a light edge so the phone lifts off the navy hero. */
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, #fff 22%, transparent),
-    0 32px 64px -24px rgba(3, 10, 30, 0.7),
-    0 10px 20px -12px rgba(3, 10, 30, 0.5);
+  /* One soft device shadow so the phone lifts off the photo (not a card shadow). */
+  box-shadow: 0 32px 64px -24px rgba(11, 31, 75, 0.55), 0 10px 20px -12px rgba(11, 31, 75, 0.35);
 }
 .home-phone__screen {
   position: relative;
@@ -576,7 +564,7 @@
   padding-top: 1.25rem;
   border-top: 1px solid var(--rule);
 }
-.home-why__num { color: var(--blue); font-size: 0.9rem; font-weight: 600; padding-top: 0.35rem; }
+.home-why__num { color: var(--navy); font-size: 0.9rem; font-weight: 600; padding-top: 0.35rem; }
 @media (min-width: 900px) {
   .home-why { grid-template-columns: repeat(12, minmax(0, 1fr)); row-gap: 2.5rem; }
   .home-why__item:nth-child(1) { grid-column: 1 / 7; }
@@ -587,7 +575,7 @@
 
 /* ---------- Bands ---------- */
 
-.home-band { background: var(--blue); color: #fff; --ink: #fff; --focus: #fff; }
+.home-band { background: var(--navy); color: #fff; --ink: #fff; --focus: #fff; }
 .home-band .pill--paper { color: var(--navy); } /* white pill keeps navy type on the cobalt band */
 .home-band a.pill--paper:focus-visible { outline-color: #fff; }
 .home-footer { background: var(--navy); color: color-mix(in srgb, #fff 74%, var(--navy)); --focus: #fff; }

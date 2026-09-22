@@ -5,6 +5,59 @@
 HomeLy is a property-management platform for the Nigerian rental market.
 Launch city: **Enugu**. Owner / admin: Chimaobi Dennis (IGSOFT Web).
 
+## Product context — read `docs/PRODUCT.md` first
+
+The owner's full product & build document lives at `docs/PRODUCT.md` (copied
+verbatim on 2026-09-22 from their `homely-full-product-document.md`). It is the
+source of truth for WHAT HomeLy is and WHY:
+
+- A tech-enabled property **management** company for Nigeria, not a listing
+  marketplace. Launch city Enugu. Primary landlord target: diaspora Nigerians
+  whose core anxiety is trust in an absentee arrangement → trust signals before
+  data collection, plain disclosure of maintenance autonomy.
+- Rent is annual. Fees: 5% agency + 5% legal one-time at placement; 8–10% annual
+  management deducted at collection; flat ₦3,000–5,000 per maintenance ticket
+  (never a % of job value); ~₦150,000 default maintenance threshold per landlord.
+- Tenants are prioritised by a queue: 1 day on the priority list = 1 point;
+  highest points wins an apartment; paid boost per application; behaviour-based
+  points are Phase 2+. The waitlist → Stage 2 conversion → active queue sequence
+  is the launch-gating mechanism even though the full system is being built now.
+- Money: tenant → HomeLy wallet → fee deducted → landlord wallet → landlord
+  withdraws (NGN/USD/EUR) on their own timing. Partners: Anchor (wallets),
+  Monnify (domestic collection), Flutterwave (international payouts),
+  Cowrywise (savings, Phase 3), Dojah/Youverify (KYC), Flowmono (e-signing),
+  Termii (SMS), Resend (email), WhatsApp Business (primary channel). ALL are
+  stubs until CAC incorporation + KYB exist (unconfirmed) — never invent API
+  calls; keep the `TODO(vendor)` stub pattern.
+- Ops: remote-first; an Enugu civil engineer anchors physical operations;
+  student BDs (₦50k retainer + ₦20k per apartment at first tenant placement)
+  who double as inspectors → one staff account with both role tags.
+- Build order (§16 there): tenant accounts ✔ → listings ✔ → apply to a property
+  → lease + signing → payment rails (stubbed) → maintenance ticketing → landlord
+  dashboard → staff commission tracking → admin analytics.
+
+Where that document and this file disagree about the **state of the code**,
+this file wins: the document predates Steps 5–7, the cloud Supabase project and
+Vercel deployment, and the current tenant-first homepage (its §13/§14/§17 and
+"no production project exists" are stale).
+
+## Decision log (append here, newest last; every session adds its decisions)
+
+- 2026-09-22 — Migration hand-off: Claude never pushes to the cloud DB; the
+  owner runs each migration's SQL + the schema_migrations insert (DEPLOYMENT §7c).
+- 2026-09-22 — Homepage is tenant-first: search → why → about → apartments →
+  landlord band → contact. "Search" wording allowed on the homepage; the
+  banned-phrase rule stays only for the /waitlist flow.
+- 2026-09-22 — Public listings expose only the `public_listings` view columns
+  (never address, landlord, status, threshold); photos are signed URLs.
+- 2026-09-22 — Hero search: free-text bar + area/bedrooms/max-rent filters;
+  results in an on-page dropdown with photos; quick-view dialog; no navigation.
+- 2026-09-22 — Theme: bold blue and white. ONE blue = the footer navy #0B1F4B
+  everywhere (nav, buttons, chips, band, footer, focus); white surfaces; ice
+  wash. Cobalt #1849D6 tried and dropped.
+- 2026-09-22 — Hero: natural-colour aerial photo under a WHITE veil + white
+  glass panel. Navy duotone tried and dropped.
+
 ## Tech stack
 
 - **Next.js** (App Router, TypeScript, `src/` layout, Tailwind v4). Next 16 —
@@ -298,17 +351,17 @@ Placeholder copy lives in `src/lib/content/enugu-ops.ts` (square brackets = repl
   `backdrop-filter: blur`) keep Ink/mute text at AA contrast over any photo, so
   no CSS change is needed. Next 16 only accepts `images.qualities` (default
   `[75]`) — do not pass a custom `quality` prop or the optimizer returns 400.
-- Theme (2026-09-22, owner asked for "bold, blue and white, mature"): palette in
-  `home.css` is Navy #0B1F4B (text, nav, hero, footer), Cobalt #1849D6 (every
-  action, chips, numerals, landlord band; hover #10339C), white surfaces, Ice
-  #EEF3FF wash (about section, thumbnails), Azure #3B82F6 (focus ring on white,
-  halo). Components only use the semantic tokens `--ink/--paper/--verify/--mist/
-  --mute/--rule/--focus/--clay`; dark sections (`.home-nav`, `.home-hero`,
-  `.home-band`, `.home-footer`) re-scope `--ink` to white and `--focus` to white,
-  and white surfaces inside them (`.home-search-wrap`, `.home-phone`) re-scope
-  back to navy. The hero photo is rendered as a navy duotone (grayscale +
-  `mix-blend-mode: luminosity` over the navy hero, cobalt glow top-left). All
-  text pairings checked ≥ 4.5:1. Fraunces/Geist/Geist Mono unchanged.
+- Theme (2026-09-22, owner: "bold, blue and white, mature"; then "one blue, the
+  footer's"): palette in `home.css` is ONE blue, Navy #0B1F4B (text, nav,
+  buttons, chips, numerals, landlord band, footer, focus rings; hover #1A3470),
+  white surfaces, Ice #EEF3FF wash (about section, thumbnails). Components only
+  use the semantic tokens `--ink/--paper/--verify/--mist/--mute/--rule/--focus/
+  --clay`; navy sections (`.home-nav`, `.home-band`, `.home-footer`) re-scope
+  `--ink` and `--focus` to white; white surfaces inside dark areas
+  (`.home-search-wrap`, `.home-phone`) re-scope back to navy. The hero is WHITE:
+  natural-colour photo under a white veil with a white glass panel behind the
+  copy (a navy duotone hero and a cobalt accent were tried and dropped the same
+  day). All text pairings checked ≥ 4.5:1. Fraunces/Geist/Geist Mono unchanged.
 - Live search (2026-09-22): the hero search is a free-text bar ("Search by area or
   keyword") plus three filter pills (area from real data, bedrooms, max rent).
   `src/components/home/hero-search.tsx` is a client component; with `live` (homepage
