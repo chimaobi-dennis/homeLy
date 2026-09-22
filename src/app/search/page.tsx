@@ -67,7 +67,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
 
       {/* Banner (reference: breadcrumb section) */}
       <section className="home-banner">
-        <Image src="/hero/enugu-aerial.jpg" alt="" fill priority sizes="100vw" className="home-banner__bg" />
+        <Image src="/hero/enugu-aerial.jpg" alt="" fill priority sizes="100vw" quality={60} className="home-banner__bg" />
         <div className="home-banner__overlay" aria-hidden="true" />
         <div className="wrap home-banner__content">
           <h1>Available homes</h1>

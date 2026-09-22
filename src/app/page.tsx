@@ -39,7 +39,7 @@ export default async function Home() {
 
       {/* ---------------- 1. Hero: photo + text slider + "looking for" tiles + filter box ---------------- */}
       <section className="home-hero" aria-labelledby="hero-heading">
-        <Image src="/hero/enugu-aerial.jpg" alt="" fill priority fetchPriority="high" sizes="100vw" className="home-hero__bg" />
+        <Image src="/hero/enugu-aerial.jpg" alt="" fill priority fetchPriority="high" sizes="100vw" quality={60} className="home-hero__bg" />
         <div className="home-hero__overlay" aria-hidden="true" />
         <div className="wrap home-hero__row">
           <div className="home-hero__left">

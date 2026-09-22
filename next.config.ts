@@ -27,6 +27,8 @@ const nextConfig: NextConfig = {
     serverFunctions: false,
   },
   images: {
+    // 60 for the big decorative photos under a dark overlay (hero, banner); 75 for listing photos.
+    qualities: [60, 75],
     remotePatterns: [supabaseImagePattern()],
     // Next refuses to optimize images from hosts that resolve to private/loopback
     // IPs (SSRF protection). The LOCAL Supabase stack lives at 127.0.0.1, so allow

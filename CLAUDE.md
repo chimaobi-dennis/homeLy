@@ -399,8 +399,12 @@ Placeholder copy lives in `src/lib/content/enugu-ops.ts` (square brackets = repl
   Buttons: `.btn--gradient` (navy gradient, 8px radius; `--pill` = 30px),
   `.btn--flat`, `.btn--dashed`, `.btn--white`. Fonts: Montserrat + Roboto via
   `next/font/google` on both pages (`--font-montserrat`, `--font-roboto`).
-- Hero photo: `public/hero/enugu-aerial.jpg` (owner-supplied). Next 16 only
-  accepts `images.qualities` (default `[75]`) — never pass a custom `quality`.
+- Hero photo: `public/hero/enugu-aerial.jpg` (owner-supplied; replaced 2026-09-22
+  with a 2478×3000 Pexels aerial of a city roundabout, stored at 1982×2400 q70,
+  1.8 MB; portrait, so wide screens see the middle band via `object-position:
+  60% 55%`). The same file is the /search banner. `images.qualities` is
+  `[60, 75]`: 60 for the hero/banner (under a dark overlay), 75 for listing
+  photos — any other `quality` value makes the optimizer return 400.
 - The page reads ONLY public data through `createPublicClient()` (anon key, no
   cookies); the header is static (no session).
 - Local test listings: `scripts/dev-listings.sh` (six listed fixtures with cover
