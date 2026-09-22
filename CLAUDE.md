@@ -16,7 +16,8 @@ Launch city: **Enugu**. Owner / admin: Chimaobi Dennis (IGSOFT Web).
     `server.ts` (Server Components / Actions / Route Handlers),
     `admin.ts` (service role — bypasses RLS, server-only, use sparingly).
   - `src/proxy.ts` refreshes the auth session on every request.
-- **Supabase CLI for local dev.** There is no cloud project yet. Schema lives in
+- **Supabase CLI.** Local dev stack plus a cloud project (`supabase link` /
+  `supabase db push`, see `DEPLOYMENT.md`). Schema lives in
   `supabase/migrations/*.sql` — never run ad-hoc SQL by hand; write a migration.
   Migrations must stay clean enough for `supabase db push` to a cloud project.
   `supabase/seed.sql` is LOCAL ONLY (dev accounts) and never runs on push.
@@ -31,6 +32,11 @@ npm run db:test      # RLS regression suite (supabase/tests/rls.sql), rolls back
 npm run db:status    # prints local URL + keys for .env.local
 npm run dev          # Next.js dev server on http://localhost:3000
 npm run typecheck && npm run lint && npm run build
+
+# cloud project (see DEPLOYMENT.md)
+npm run db:link           # supabase link --project-ref <ref>
+npm run db:push           # apply migrations to the linked cloud project (never runs seed.sql)
+npm run db:types:linked    # regenerate types from the cloud schema
 ```
 
 New migration: `supabase migration new <name>` (or hand-create
@@ -258,6 +264,31 @@ Dojah (KYC — `verifyTenantKyc()` stub exists), Monnify / Flutterwave (payments
 Termii (SMS/WhatsApp), Resend (email — `notifyByEmail()` stub exists), Flowmono
 (e-signature — `sendAgreementForSigning()` stub exists). Only `TODO(<vendor>)`
 comments and stubs mark where they will plug in. Do not add integration code unless asked.
+
+## Deployment (Step 6 infra, 2026-09-22)
+
+Hosting: GitHub (`chimaobi-dennis/homeLy`, `main` = production) → Vercel
+(production on push to `main`, preview per branch) → Supabase cloud project.
+`DEPLOYMENT.md` is the runbook; keep it correct when any of this changes.
+
+- Four env vars, set in Vercel, never committed: `NEXT_PUBLIC_SUPABASE_URL`,
+  `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`,
+  `NEXT_PUBLIC_SITE_URL`. `NEXT_PUBLIC_SITE_URL` is set on Production only —
+  previews derive their origin from the request (`src/lib/site-url.ts`).
+- `vercel.json` pins functions to `lhr1`; the Supabase project is `eu-west-2`.
+  Move both together.
+- `supabase/seed.sql` never runs on cloud. The first production admin is created
+  by hand (DEPLOYMENT.md §6): add the user in the dashboard, then write
+  `role_tags` into `auth.users.raw_app_meta_data` and let the
+  `on_auth_user_app_metadata_updated` trigger mirror it into `profiles`.
+- Hosted Auth differs from `supabase/config.toml` in two ways that matter:
+  email confirmation defaults ON (local: off — decide per DEPLOYMENT.md §5), and
+  Site URL / redirect URLs must be set in the dashboard. `config.toml` does not
+  apply to cloud.
+- Preview deployments currently share the production database. There is no
+  staging project.
+- On Vercel, `[notify STUB]` / `[flowmono STUB]` / `[dojah STUB]` lines land in
+  the Vercel function logs, not a terminal.
 
 ## Standing rules for Claude
 

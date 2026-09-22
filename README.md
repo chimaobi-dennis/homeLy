@@ -3,7 +3,8 @@
 Property management for the Nigerian rental market. Launch city: Enugu.
 
 Next.js (App Router, TypeScript) + Supabase (Postgres, Auth, RLS). See
-[CLAUDE.md](./CLAUDE.md) for the stack, role model, schema and conventions.
+[CLAUDE.md](./CLAUDE.md) for the stack, role model, schema and conventions, and
+[DEPLOYMENT.md](./DEPLOYMENT.md) for the GitHub → Supabase Cloud → Vercel runbook.
 
 ## Local setup
 

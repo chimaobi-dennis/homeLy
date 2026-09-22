@@ -13,7 +13,10 @@
     "db:status": "supabase status",
     "db:reset": "supabase db reset",
     "db:types": "supabase gen types typescript --local --schema public > src/lib/supabase/database.types.ts",
-    "db:test": "docker exec -i supabase_db_homely psql -U postgres -d postgres -q -f - < supabase/tests/rls.sql"
+    "db:types:linked": "supabase gen types typescript --linked --schema public > src/lib/supabase/database.types.ts",
+    "db:test": "docker exec -i supabase_db_homely psql -U postgres -d postgres -q -f - < supabase/tests/rls.sql",
+    "db:link": "supabase link",
+    "db:push": "supabase db push"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
