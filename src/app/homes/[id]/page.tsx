@@ -3,6 +3,7 @@ import { Montserrat, Roboto } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CompareBar } from "@/components/home/compare-bar";
 import { ContactForm } from "@/components/home/contact-form";
 import { Icon } from "@/components/home/icons";
 import { PhotoGallery } from "@/components/home/photo-gallery";
@@ -267,6 +268,7 @@ export default async function HomePage({ params }: { params: Params }) {
       </main>
 
       <SiteFooter />
+      <CompareBar />
     </div>
   );
 }

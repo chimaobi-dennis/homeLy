@@ -86,6 +86,12 @@ Vercel deployment, and the current tenant-first homepage (its §13/§14/§17 and
   homes; sidebar: Contact info, Request a viewing (= contact form pre-filled),
   Recently added). The quick-view dialog was removed. No address on the page;
   the copy says the exact address is shared with verified tenants.
+- 2026-09-22 — Listing cards match the reference card: rounded corners, photo
+  slider with arrows + dots, favourite (heart) and compare buttons. Because
+  tenants have no accounts yet, favourites and the compare selection are kept
+  in the browser (localStorage), with a /saved page and a /compare page. When
+  tenant accounts exist, move saved homes server-side (decision pending).
+- 2026-09-22 — Owner rule: push `main` after every verified edit (rule 8).
 
 ## Tech stack
 
@@ -389,7 +395,17 @@ Placeholder copy lives in `src/lib/content/enugu-ops.ts` (square brackets = repl
   form (`compact`, `defaultMessage`) + recently added. `SiteNav variant="solid"`
   (white bar) because the page has no banner.
 - Cards (`property-card.tsx`, server) only ever receive the anon view's columns;
-  every part of a card links to `/homes/[id]`.
+  every part of a card links to `/homes/[id]`. Cards are rounded (10px), carry
+  a photo slider (`card-slider.tsx`: arrows on hover / always on touch, dots;
+  up to 5 signed photos per card from `getPublicListingsPage`) and two
+  buttons (`card-actions.tsx`): compare and favourite. Both lists live in
+  localStorage only (`lib/saved-store.ts`, keys `homely:saved`,
+  `homely:compare`, compare max 3; read via useSyncExternalStore, no
+  setState-in-effect). Header shows a Saved link with a count (`saved-link.tsx`).
+  `/saved` (client redirect to `?ids=…`, server renders cards via the `ids`
+  filter) and `/compare?ids=a,b,c` (side-by-side table of public columns +
+  amenity ✓/—) are `robots: noindex`. `compare-bar.tsx` is a sticky bottom
+  bar on every public page once something is selected.
 - Data: `getPublicListingsPage()` (count + range + sort), `getPublicListings()`,
   `getAreaCounts()`, `getListingAreas()` in `lib/public-listings.ts`; photos are
   signed server-side (1 h), pages cached 60 s (`/` ISR; `/search` dynamic).

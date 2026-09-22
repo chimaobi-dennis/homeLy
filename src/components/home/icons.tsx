@@ -40,7 +40,10 @@ export type IconName =
   | "print"
   | "check"
   | "calendar"
-  | "sofa";
+  | "sofa"
+  | "heart"
+  | "compare"
+  | "trash";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   home: (
@@ -171,6 +174,19 @@ const PATHS: Record<IconName, React.ReactNode> = {
     <>
       <path d="M4 12V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4" />
       <path d="M3 12h18v5H3zM5 17v2M19 17v2" />
+    </>
+  ),
+  heart: <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" />,
+  compare: (
+    <>
+      <path d="M16 3h5v5M21 3l-7 7M3 21l7-7M8 21H3v-5" />
+      <path d="M3 3l7 7M14 14l7 7" />
+    </>
+  ),
+  trash: (
+    <>
+      <path d="M4 7h16M10 11v6M14 11v6" />
+      <path d="M6 7l1 13h10l1-13M9 7V4h6v3" />
     </>
   ),
 };

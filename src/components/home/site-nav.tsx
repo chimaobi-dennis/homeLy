@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Icon } from "./icons";
+import { SavedLink } from "./saved-link";
 
 const LINKS = [
   { href: "/", label: "Home" },
@@ -30,6 +31,7 @@ export function SiteNav({ variant = "overlay" }: { variant?: "overlay" | "solid"
           ))}
         </nav>
         <div className="home-nav__right">
+          <SavedLink />
           <Link href="/login" className="home-nav__signin">
             <Icon name="user" size={18} />
             <span>Sign in</span>
@@ -44,6 +46,7 @@ export function SiteNav({ variant = "overlay" }: { variant?: "overlay" | "solid"
                   {l.label}
                 </Link>
               ))}
+              <Link href="/saved">Saved homes</Link>
               <Link href="/login">Sign in</Link>
             </nav>
           </details>

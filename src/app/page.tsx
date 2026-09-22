@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Montserrat, Roboto } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
+import { CompareBar } from "@/components/home/compare-bar";
 import { ContactForm } from "@/components/home/contact-form";
 import { FilterBox } from "@/components/home/filter-box";
 import { HeroSlider } from "@/components/home/hero-slider";
@@ -162,6 +163,7 @@ export default async function Home() {
       </section>
 
       <SiteFooter />
+      <CompareBar />
     </div>
   );
 }

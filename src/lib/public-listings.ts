@@ -14,9 +14,16 @@ export type PublicListingCard = PublicListing & {
   coverAlt: string | null;
   /** Number of photos on the listing (shown on the card like the reference's camera badge). */
   photoCount: number;
+  /** Up to CARD_PHOTOS signed photos for the card slider (photos[0] is the cover). */
+  photos: Array<{ url: string; alt: string | null }>;
 };
 
+/** Photos signed per card; the property page signs all of them. */
+const CARD_PHOTOS = 5;
+
 export type ListingQuery = {
+  /** Only these listing ids (saved / compare pages). */
+  ids?: string[] | null;
   /** Free text; every word must appear in the headline, area, city or description. */
   q?: string | null;
   area?: string | null;
@@ -79,6 +86,11 @@ export async function getPublicListingsPage(q: ListingQuery = {}): Promise<{ ite
   }
   query = query.order("id", { ascending: true }); // stable pagination
 
+  if (q.ids) {
+    const ids = q.ids.filter(isUuid).slice(0, 50);
+    if (ids.length === 0) return { items: [], total: 0 };
+    query = query.in("id", ids);
+  }
   if (q.area) query = query.eq("area", q.area);
   if (q.bedrooms != null) query = q.bedrooms >= 4 ? query.gte("bedrooms", 4) : query.eq("bedrooms", q.bedrooms);
   if (q.bathrooms != null) query = q.bathrooms >= 4 ? query.gte("bathrooms", 4) : query.eq("bathrooms", q.bathrooms);
@@ -109,24 +121,31 @@ export async function getPublicListingsPage(q: ListingQuery = {}): Promise<{ ite
     .select("property_id, storage_path, caption, sort_order")
     .in("property_id", ids)
     .order("sort_order", { ascending: true });
-  const cover = new Map<string, { path: string; caption: string | null }>();
+  const perListing = new Map<string, Array<{ path: string; caption: string | null }>>();
   const photoCount = new Map<string, number>();
   for (const p of photos ?? []) {
     if (!p.property_id || !p.storage_path) continue;
     photoCount.set(p.property_id, (photoCount.get(p.property_id) ?? 0) + 1);
-    if (!cover.has(p.property_id)) cover.set(p.property_id, { path: p.storage_path, caption: p.caption ?? null });
+    const list = perListing.get(p.property_id) ?? [];
+    if (list.length < CARD_PHOTOS) list.push({ path: p.storage_path, caption: p.caption ?? null });
+    perListing.set(p.property_id, list);
   }
 
   const signed = new Map<string, string>();
-  if (cover.size) {
+  const allPaths = [...perListing.values()].flat().map((c) => c.path);
+  if (allPaths.length) {
     const admin = createAdminClient();
-    const { data: urls } = await admin.storage.from(PHOTO_BUCKET).createSignedUrls([...cover.values()].map((c) => c.path), SIGNED_URL_TTL_SECONDS);
+    const { data: urls } = await admin.storage.from(PHOTO_BUCKET).createSignedUrls(allPaths, SIGNED_URL_TTL_SECONDS);
     for (const u of urls ?? []) if (u.path && u.signedUrl) signed.set(u.path, u.signedUrl);
   }
 
   const items = rows.map((r) => {
-    const c = cover.get(r.id);
-    return { ...r, coverUrl: c ? (signed.get(c.path) ?? null) : null, coverAlt: c?.caption ?? null, photoCount: photoCount.get(r.id) ?? 0 };
+    const list = perListing.get(r.id) ?? [];
+    const photosSigned = list.flatMap((c) => {
+      const url = signed.get(c.path);
+      return url ? [{ url, alt: c.caption }] : [];
+    });
+    return { ...r, coverUrl: photosSigned[0]?.url ?? null, coverAlt: photosSigned[0]?.alt ?? null, photoCount: photoCount.get(r.id) ?? 0, photos: photosSigned };
   });
   return { items, total };
 }

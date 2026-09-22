@@ -1,7 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import { formatNgn } from "@/lib/fees";
 import type { PublicListingCard } from "@/lib/public-listings";
+import { CardActions } from "./card-actions";
+import { CardSlider } from "./card-slider";
 import { Icon } from "./icons";
 
 const dateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
@@ -15,24 +16,19 @@ export function listingHref(id: string): string {
 }
 
 /**
- * Property card (reference: Sheltos `.property-box`): photo with label + photo count,
- * hover overlay with an open button, then area, headline, rent, description,
- * bed / bath / size facts and a footer with the listed date and a "Details" button.
- * Everything opens the property page. Privacy: only the anon view's columns reach here.
+ * Listing card (reference: Sheltos `.property-box`): rounded card, photo slider
+ * with arrows + dots, label + photo count, compare + favourite buttons, then
+ * area, headline, rent, description, bed / bath / size and a footer with the
+ * listed date and a "Details" button. Same card everywhere.
+ * Privacy: only the anon view's columns reach this component.
  */
-export function PropertyCard({ listing, layout = "grid" }: { listing: PublicListingCard; layout?: "grid" | "list" }) {
+export function PropertyCard({ listing, layout = "grid", priority = false }: { listing: PublicListingCard; layout?: "grid" | "list"; priority?: boolean }) {
   const title = listingTitle(listing);
   const href = listingHref(listing.id);
   return (
     <article className={`home-prop${layout === "list" ? " home-prop--list" : ""}`}>
       <div className="home-prop__image">
-        <Link href={href} className="home-prop__imagelink" aria-label={title} tabIndex={-1}>
-          {listing.coverUrl ? (
-            <Image src={listing.coverUrl} alt={listing.coverAlt ?? title} fill sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw" className="object-cover" />
-          ) : (
-            <div className="home-prop__nophoto font-roboto">Photos coming</div>
-          )}
-        </Link>
+        <CardSlider photos={listing.photos} title={title} href={href} priority={priority} />
         <div className="home-prop__labels">
           <span className="home-label">Inspected</span>
         </div>
@@ -42,11 +38,7 @@ export function PropertyCard({ listing, layout = "grid" }: { listing: PublicList
             <span className="data">{listing.photoCount}</span>
           </span>
         ) : null}
-        <div className="home-prop__overlay">
-          <Link href={href} className="home-prop__round" aria-label={`Open: ${title}`}>
-            <Icon name="maximize" size={18} />
-          </Link>
-        </div>
+        <CardActions id={listing.id} title={title} />
       </div>
       <div className="home-prop__details">
         <span className="home-prop__area font-roboto">{listing.area ?? listing.city ?? "Enugu"}</span>

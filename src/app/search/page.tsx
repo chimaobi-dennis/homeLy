@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Montserrat, Roboto } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
+import { CompareBar } from "@/components/home/compare-bar";
 import { FilterBox } from "@/components/home/filter-box";
 import { Icon } from "@/components/home/icons";
 import { PropertyGrid } from "@/components/home/property-grid";
@@ -262,6 +263,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
       </main>
 
       <SiteFooter />
+      <CompareBar />
     </div>
   );
 }
