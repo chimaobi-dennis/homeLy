@@ -98,9 +98,11 @@
 
 .home-hero {
   position: relative;
+  z-index: 1; /* the search dropdown must paint above the sections below */
   isolation: isolate; /* keeps the photo's negative z-index inside the hero */
   background: linear-gradient(180deg, var(--paper) 0%, var(--mist) 100%); /* fallback until the photo paints */
-  overflow: hidden;
+  /* No overflow clipping: the live-search dropdown hangs below the panel. Nothing inside
+     bleeds horizontally (halo inset 0; the −40px visual margin only ≥1360px). */
 }
 
 /* The aerial photo: sharp where the phone sits (right), veiled where the copy sits (left). */
@@ -158,7 +160,9 @@
   align-items: center;
   padding-block: 3rem 3.5rem;
 }
-.home-hero__copy { grid-column: 1 / -1; }
+/* The copy column sits above the visual: backdrop-filter on the panel makes its own stacking
+   context, so the dropdown's z-index only wins if the whole column is raised. */
+.home-hero__copy { grid-column: 1 / -1; position: relative; z-index: 2; }
 .home-hero__visual { grid-column: 1 / -1; position: relative; }
 
 @media (min-width: 768px) {
@@ -170,71 +174,274 @@
   .home-hero__copy { grid-column: 1 / 7; }
   .home-hero__visual { grid-column: 7 / 13; }
 }
-@media (min-width: 1280px) {
+@media (min-width: 1360px) {
   .home-hero__visual { margin-right: -40px; }
 }
 
 /* The one allowed halo: static Signal radial at 8% behind the visual. */
 .home-hero__halo {
   position: absolute;
-  inset: -12% -8%;
+  inset: 0;
   background: radial-gradient(60% 60% at 60% 45%, color-mix(in srgb, var(--signal) 8%, transparent) 0%, transparent 70%);
   pointer-events: none;
 }
 
-/* ---------- Search pill ---------- */
+/* ---------- Search: bar + filters + live results ---------- */
 
-.home-search {
+.home-search-wrap { position: relative; }
+
+.home-search__bar {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem;
+  padding: 0.35rem 0.35rem 0.35rem 1rem;
   background: #fff;
   border: 1px solid var(--rule);
-  border-radius: 28px;
+  border-radius: 999px;
 }
-.home-search__seg {
+.home-search__bar:focus-within {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 38%, transparent);
+}
+.home-search__icon { color: var(--mute); flex: none; }
+.home-search__input {
+  min-height: 44px;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  font-size: 1rem;
+  color: var(--ink);
+  outline: none;
+}
+.home-search__input::placeholder { color: var(--mute); }
+.home-search__input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+.home-search__submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 0.8rem;
+  border-radius: 999px;
+  background: var(--verify);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+.home-search__submit:hover { background: color-mix(in srgb, var(--verify) 86%, var(--ink)); }
+.home-search__submit span { display: none; }
+@media (min-width: 480px) {
+  .home-search__submit { padding: 0 1.1rem 0 0.9rem; }
+  .home-search__submit span { display: inline; }
+}
+
+.home-search__filters {
   display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  padding: 0.45rem 0.9rem;
-  border-radius: 20px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
 }
-.home-search__seg label {
-  font-size: 0.72rem;
+.home-search__filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 38px;
+  padding: 0 0.4rem 0 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: color-mix(in srgb, #fff 78%, transparent);
+  font-size: 0.85rem;
   color: var(--mute);
 }
-.home-search__seg select {
-  min-height: 28px;
+.home-search__filter select {
+  min-height: 36px;
+  max-width: 11rem;
+  padding-right: 0.2rem;
   background: transparent;
   border: 0;
   font: inherit;
   font-weight: 600;
   color: var(--ink);
-  width: 100%;
 }
-.home-search__submit {
-  width: 44px;
-  height: 44px;
+.home-search__filter:focus-within { border-color: var(--ink); }
+.home-search__clear {
+  min-height: 38px;
+  padding: 0 0.6rem;
+  font-size: 0.85rem;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* Results dropdown: hangs under the bar + filters, scrolls internally, never navigates. */
+.home-results {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  right: 0;
+  z-index: 40;
+  max-height: min(60vh, 27rem);
+  overflow-y: auto;
+  padding: 0.4rem;
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 16px;
+  box-shadow: 0 24px 48px -20px rgba(20, 23, 26, 0.35);
+}
+.home-results__group {
+  font-size: 0.72rem;
+  color: var(--mute);
+  margin-right: 0.25rem;
+}
+.home-results__areas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.6rem 0.55rem;
+  border-bottom: 1px solid var(--rule);
+}
+.home-results__area {
+  min-height: 30px;
+  padding: 0 0.7rem;
+  border: 1px solid var(--rule);
   border-radius: 999px;
-  background: var(--verify);
-  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--paper);
+}
+.home-results__area:hover { background: var(--mist); }
+.home-results__note {
+  padding: 0.85rem 0.75rem;
+  font-size: 0.9rem;
+  color: var(--mute);
+}
+.home-results__list { list-style: none; margin: 0; padding: 0; }
+.home-results__list.is-stale { opacity: 0.55; }
+.home-results__title {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 479px) {
+  /* Phones: photo + text only; the rent drops under the title so the headline keeps two lines. */
+  .home-results__item { grid-template-columns: 64px minmax(0, 1fr); }
+  .home-results__thumb { width: 64px; }
+  .home-results__title {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.25;
+  }
+  .home-results__rent { grid-column: 2; }
+}
+.home-results__item {
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.home-results__item.is-active { background: var(--mist); }
+.home-results__thumb {
+  position: relative;
+  display: block;
+  width: 80px;
+  aspect-ratio: 4 / 3;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--mist);
+}
+.home-results__foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.6rem 0.75rem 0.4rem;
+  margin-top: 0.25rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.85rem;
+}
+
+/* Quick view dialog (top layer; inherits the .home tokens through the DOM). */
+.home-quick {
+  width: min(36rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 40px 80px -30px rgba(20, 23, 26, 0.5);
+  overflow: auto;
+}
+.home-quick::backdrop {
+  background: rgba(20, 23, 26, 0.55);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+.home-quick__inner { position: relative; }
+.home-quick__close {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  align-self: center;
-  justify-self: end;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: color-mix(in srgb, #fff 88%, transparent);
+  color: var(--ink);
 }
-.home-search__submit:hover { background: color-mix(in srgb, var(--verify) 86%, var(--ink)); }
-
-@media (min-width: 1024px) {
-  .home-search {
-    grid-template-columns: 1.3fr 1fr 1.1fr auto;
-    align-items: center;
-    border-radius: 999px;
-    padding: 0.35rem 0.35rem 0.35rem 0.5rem;
-  }
-  .home-search__seg + .home-search__seg { border-left: 1px solid var(--rule); border-radius: 0; }
+.home-quick__close:hover { background: #fff; }
+.home-quick__photo {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  background: var(--mist);
+}
+@media (max-height: 720px) {
+  .home-quick__photo { aspect-ratio: 16 / 7; } /* short viewports: keep the facts and CTA in view */
+}
+.home-quick__body { padding: 1.1rem 1.25rem 1.35rem; }
+.home-quick__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+  gap: 0.75rem 1rem;
+  margin-top: 1.1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+}
+.home-quick__facts dt { font-size: 0.72rem; color: var(--mute); }
+.home-quick__facts dd { margin: 0.1rem 0 0; font-weight: 600; }
+.home-quick__amenities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.home-quick__amenities li {
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+.home-quick__fees {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: var(--mute);
 }
 
 /* ---------- Phone visual (CSS only; the screen slot is swappable) ---------- */

@@ -20,12 +20,13 @@ export const metadata: Metadata = {
  * view only (privacy-safe columns). Zero results is a first-class state that
  * points to the priority list.
  */
-export default async function SearchPage({ searchParams }: { searchParams: Promise<{ area?: string; bedrooms?: string; max_rent?: string }> }) {
+export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string; area?: string; bedrooms?: string; max_rent?: string }> }) {
   const params = await searchParams;
   const q = parseListingQuery(params);
   const [areas, listings] = await Promise.all([getListingAreas(), getPublicListings({ ...q, limit: 48 })]);
 
   const filters: string[] = [];
+  if (q.q) filters.push(`“${q.q}”`);
   if (q.area) filters.push(q.area);
   if (q.bedrooms != null) filters.push(q.bedrooms >= 4 ? "4 or more bedrooms" : `${q.bedrooms} bedroom${q.bedrooms > 1 ? "s" : ""}`);
   if (q.maxRent != null) filters.push(`up to ${formatNgn(q.maxRent)} a year`);

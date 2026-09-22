@@ -57,7 +57,7 @@ export default async function Home() {
               </h1>
               <p className="mt-5 max-w-[34rem] text-lg leading-relaxed text-[var(--mute)]">{HERO.sub}</p>
               <div className="mt-7">
-                <HeroSearch areas={areas} />
+                <HeroSearch areas={areas} live whatsappE164={contact.whatsappE164} />
               </div>
               <p className="mt-3 text-sm text-[var(--mute)]">{HERO.micro}</p>
               <p className="mt-4 text-sm">

@@ -299,6 +299,26 @@ Placeholder copy lives in `src/lib/content/enugu-ops.ts` (square brackets = repl
   `backdrop-filter: blur`) keep Ink/mute text at AA contrast over any photo, so
   no CSS change is needed. Next 16 only accepts `images.qualities` (default
   `[75]`) — do not pass a custom `quality` prop or the optimizer returns 400.
+- Live search (2026-09-22): the hero search is a free-text bar ("Search by area or
+  keyword") plus three filter pills (area from real data, bedrooms, max rent).
+  `src/components/home/hero-search.tsx` is a client component; with `live` (homepage
+  only) results appear in a dropdown under the bar as you type (250 ms debounce)
+  or change a filter, each row with the signed cover photo; picking one opens
+  `listing-quick-view.tsx` (native `<dialog>`) on the same page. Nothing
+  navigates except explicit links (/search "Open full results", /waitlist,
+  WhatsApp). Data comes from `GET /api/listings?q&area&bedrooms&max_rent&limit`
+  (`src/app/api/listings/route.ts`, anon view only, CDN cache 60 s). Free text
+  is sanitised in `parseListingQuery` (letters/digits/space/'/- only, 60 chars)
+  and applied as one PostgREST `or(ilike)` per word over headline/area/city, so
+  every word must match. Underneath it is still a plain GET form to /search, and
+  /search uses the same component without `live`. Keyboard: arrows move, Enter
+  opens, Escape closes; ARIA combobox/listbox with aria-activedescendant.
+- Local test listings: `scripts/dev-listings.sh` creates six listed apartments
+  (cover photos cropped from the hero image, uploaded to the LOCAL bucket) for
+  the seeded landlord. Local only; it cannot run against production. It also
+  recreates the `storage.objects (bucket_id, name)` unique index because the
+  local storage-api v1.72.1 drops it in its own migration and then 500s (42P10)
+  on every upload — a local-stack bug, nothing to do with our schema.
 - The page reads ONLY public data through `createPublicClient()` (anon key, no
   cookies) and is cached (`revalidate = 60`); the header is static (no session).
 - PUBLIC LISTINGS = a privacy-safe shape, never the table:
