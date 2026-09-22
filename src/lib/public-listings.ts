@@ -24,6 +24,8 @@ const CARD_PHOTOS = 5;
 export type ListingQuery = {
   /** Only these listing ids (saved / compare pages). */
   ids?: string[] | null;
+  /** Only featured listings, most recently featured first ("Property of the day"). */
+  featured?: boolean;
   /** Free text; every word must appear in the headline, area, city or description. */
   q?: string | null;
   area?: string | null;
@@ -71,6 +73,7 @@ export async function getPublicListingsPage(q: ListingQuery = {}): Promise<{ ite
   const supabase = createPublicClient();
   let query = supabase.from("public_listings").select("*", { count: "exact" });
 
+  if (q.featured) query = query.not("featured_at", "is", null).order("featured_at", { ascending: false, nullsFirst: false });
   switch (q.sort ?? "newest") {
     case "oldest":
       query = query.order("listed_at", { ascending: true, nullsFirst: false });
@@ -152,6 +155,14 @@ export async function getPublicListingsPage(q: ListingQuery = {}): Promise<{ ite
 
 export async function getPublicListings(q: ListingQuery = {}): Promise<PublicListingCard[]> {
   return (await getPublicListingsPage(q)).items;
+}
+
+/** "Property of the day": the most recently featured listed home, else the newest listing, else null. */
+export async function getFeaturedListing(): Promise<PublicListingCard | null> {
+  const featured = await getPublicListingsPage({ featured: true, limit: 1 });
+  if (featured.items[0]) return featured.items[0];
+  const newest = await getPublicListingsPage({ limit: 1 });
+  return newest.items[0] ?? null;
 }
 
 export type PublicListingDetail = PublicListing & {

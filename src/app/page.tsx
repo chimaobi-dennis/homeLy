@@ -5,16 +5,17 @@ import Link from "next/link";
 import { CompareBar } from "@/components/home/compare-bar";
 import { ContactForm } from "@/components/home/contact-form";
 import { FilterBox } from "@/components/home/filter-box";
+import { FeaturedProperty } from "@/components/home/featured-property";
 import { HeroSlider } from "@/components/home/hero-slider";
-import { Icon } from "@/components/home/icons";
 import { LookingFor } from "@/components/home/looking-for";
+import { MediaSlider } from "@/components/home/media-slider";
 import { PropertyGrid } from "@/components/home/property-grid";
 import { SectionTitle } from "@/components/home/section-title";
 import { SiteFooter } from "@/components/home/site-footer";
 import { SiteNav } from "@/components/home/site-nav";
-import { ABOUT, EMPTY_LISTINGS, HERO_SLIDES, LANDLORD_BAND, SERVICES, getContactChannels } from "@/lib/content/homepage";
-import { FEES } from "@/lib/fees";
-import { getListingAreas, getPublicListings } from "@/lib/public-listings";
+import { ABOUT, EMPTY_LISTINGS, HERO_SLIDES, LANDLORD_BAND, LATEST_LISTING, PROPERTY_OF_DAY, WHY_HOMELY, getContactChannels } from "@/lib/content/homepage";
+import { getFeaturedListing, getListingAreas, getPublicListings } from "@/lib/public-listings";
+import { getHomepageMedia } from "@/lib/site-media";
 import "./home.css";
 
 // Reference typography: Montserrat for everything, Roboto for descriptive paragraphs.
@@ -30,9 +31,10 @@ export const metadata: Metadata = {
 export const revalidate = 60;
 
 export default async function Home() {
-  const [areas, listings] = await Promise.all([getListingAreas(), getPublicListings({ limit: 6 })]);
+  const [areas, listings, featured, media] = await Promise.all([getListingAreas(), getPublicListings({ limit: 6 }), getFeaturedListing(), getHomepageMedia()]);
   const contact = getContactChannels();
-  const feeLine = `Agency ${FEES.agencyPct}% and legal ${FEES.legalPct}% of the annual rent, one-time, printed on every listing.`;
+  // Until the admin uploads media, the slider shows the hero photo so the section is never empty.
+  const mediaItems = media.length ? media.map((m) => ({ kind: m.kind, url: m.url, caption: m.caption })) : [{ kind: "image" as const, url: "/hero/enugu-aerial.jpg", alt: "" }];
 
   return (
     <div className={`${montserrat.variable} ${roboto.variable} home flex flex-1 flex-col`}>
@@ -53,27 +55,53 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ---------------- 2. Provided services ---------------- */}
-      <section className="home-section" aria-labelledby="services-heading">
-        <div className="wrap">
-          <SectionTitle id="services-heading" bold={SERVICES.bold} light={SERVICES.light} intro={SERVICES.intro} />
-          <ul className="home-services">
-            {SERVICES.items.map((s, i) => (
-              <li key={s.title} className="home-service reveal">
-                <span className="home-service__line" aria-hidden="true" />
-                <Icon name={s.icon} size={50} strokeWidth={1.2} className="home-service__icon" />
-                <h3>{s.title}</h3>
-                <p className="font-roboto">{i === 1 ? `${feeLine} ${s.body}` : s.body}</p>
-                <Link href={s.cta.href} className="btn btn--flat">
-                  {s.cta.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
+      {/* ---------------- 2. Why choose HomeLy: text card + admin-uploaded image/video slider ---------------- */}
+      <section className="home-why" aria-labelledby="why-heading">
+        <div className="wrap home-why__grid">
+          <div className="home-why__card reveal">
+            <span className="home-why__tag">{WHY_HOMELY.tag}</span>
+            <h2 id="why-heading">{WHY_HOMELY.heading}</h2>
+            <p className="font-roboto">{WHY_HOMELY.body}</p>
+            <Link href={WHY_HOMELY.cta.href} className="btn btn--gradient">
+              {WHY_HOMELY.cta.label}
+            </Link>
+          </div>
+          <div className="home-why__media">
+            <MediaSlider items={mediaItems} sizes="(min-width: 992px) 60vw, 100vw" />
+          </div>
         </div>
       </section>
 
-      {/* ---------------- 3. About us ---------------- */}
+      {/* ---------------- 3. Property of the day ---------------- */}
+      {featured ? (
+        <section className="home-potd" aria-labelledby="potd-heading">
+          <Image src="/hero/enugu-aerial.jpg" alt="" fill sizes="100vw" quality={60} className="home-potd__bg" />
+          <div className="home-potd__overlay" aria-hidden="true" />
+          <div className="wrap">
+            <SectionTitle id="potd-heading" bold={PROPERTY_OF_DAY.heading} intro={PROPERTY_OF_DAY.intro} variant="light" />
+            <FeaturedProperty listing={featured} />
+          </div>
+        </section>
+      ) : null}
+
+      {/* ---------------- 4. Latest property listing ---------------- */}
+      <section id="homes" className="home-section" aria-labelledby="homes-heading">
+        <div className="wrap">
+          <SectionTitle id="homes-heading" bold={LATEST_LISTING.heading} intro={LATEST_LISTING.intro} variant="accent" />
+          {listings.length === 0 ? (
+            <p className="home-empty font-roboto">{EMPTY_LISTINGS}</p>
+          ) : (
+            <PropertyGrid listings={listings} columns="3" />
+          )}
+          <div className="mt-10 flex justify-center">
+            <Link href={listings.length === 0 ? "/waitlist" : "/search"} className="btn btn--gradient">
+              {listings.length === 0 ? "Join the priority list" : "View all homes"}
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ---------------- 5. About us (owner content; kept below the reference sections) ---------------- */}
       <section id="about" className="home-section home-section--tint" aria-labelledby="about-heading">
         <div className="wrap grid gap-10 md:grid-cols-2 md:gap-16">
           <div className="reveal">
@@ -95,24 +123,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ---------------- 4. Available apartments ---------------- */}
-      <section id="homes" className="home-section" aria-labelledby="homes-heading">
-        <div className="wrap">
-          <SectionTitle id="homes-heading" bold="Available" light="apartments" intro="Every home here was inspected in person by our team. Fees are published on each listing." />
-          {listings.length === 0 ? (
-            <p className="home-empty font-roboto">{EMPTY_LISTINGS}</p>
-          ) : (
-            <PropertyGrid listings={listings} columns="3" />
-          )}
-          <div className="mt-10 flex justify-center">
-            <Link href={listings.length === 0 ? "/waitlist" : "/search"} className="btn btn--gradient">
-              {listings.length === 0 ? "Join the priority list" : "View all homes"}
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ---------------- 5. Landlord CTA band ---------------- */}
+      {/* ---------------- 6. Landlord CTA band ---------------- */}
       <section className="home-band" aria-labelledby="landlord-heading">
         <div className="wrap flex flex-wrap items-center justify-between gap-6 py-14">
           <div>
@@ -127,7 +138,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ---------------- 6. Contact ---------------- */}
+      {/* ---------------- 7. Contact ---------------- */}
       <section id="contact" className="home-section" aria-labelledby="contact-heading">
         <div className="wrap grid gap-10 md:grid-cols-[1fr_1.2fr] md:gap-16">
           <div>

@@ -822,6 +822,58 @@ do $$ begin
   raise notice 'PASS homepage: admin';
 end $$;
 
+-- ===========================================================================
+-- 0019: homepage media + property of the day
+-- ===========================================================================
+reset role;
+insert into public.homepage_media (id, kind, storage_path, caption, sort_order, is_active) values
+  ('30000000-0000-4000-8000-000000000001', 'image', 'homepage/one.jpg', 'Active image', 0, true),
+  ('30000000-0000-4000-8000-000000000002', 'video', 'homepage/two.mp4', 'Inactive video', 1, false);
+
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+set local role anon;
+do $$ declare ok boolean; begin
+  assert (select count(*) from public.homepage_media) = 1, 'anon: sees only ACTIVE homepage media';
+  ok := false; begin insert into public.homepage_media (kind, storage_path) values ('image', 'homepage/x.jpg'); exception when insufficient_privilege then ok := true; end;
+  assert ok, 'anon: cannot insert homepage media';
+  assert (select featured_at from public.public_listings where id='20000000-0000-4000-8000-000000000001') is null, 'anon: featured_at is exposed through the view (null until featured)';
+  raise notice 'PASS 0019 anon';
+end $$;
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-0000000000a2","role":"authenticated"}', true);
+set local role authenticated;
+do $$ declare ok boolean; begin
+  assert (select count(*) from public.homepage_media) = 1, 'staff: sees only active media';
+  ok := false; begin insert into public.homepage_media (kind, storage_path) values ('image', 'homepage/y.jpg'); exception when insufficient_privilege then ok := true; end;
+  assert ok, 'staff: cannot insert homepage media';
+  ok := false; begin update public.properties set featured_at = now() where id='20000000-0000-4000-8000-000000000001'; exception when insufficient_privilege then ok := true; end;
+  assert ok, 'staff: cannot feature a property (42501)';
+  raise notice 'PASS 0019 staff';
+end $$;
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-0000000000a1","role":"authenticated"}', true);
+set local role authenticated;
+do $$ begin
+  assert (select count(*) from public.homepage_media) = 2, 'admin: sees all media incl. inactive';
+  update public.homepage_media set is_active = true, caption = 'Now active' where id='30000000-0000-4000-8000-000000000002';
+  assert (select is_active from public.homepage_media where id='30000000-0000-4000-8000-000000000002'), 'admin: can update media';
+  delete from public.homepage_media where id='30000000-0000-4000-8000-000000000002';
+  assert (select count(*) from public.homepage_media) = 1, 'admin: can delete media';
+  update public.properties set featured_at = now() where id='20000000-0000-4000-8000-000000000001';
+  assert (select featured_at from public.properties where id='20000000-0000-4000-8000-000000000001') is not null, 'admin: can feature a property';
+  raise notice 'PASS 0019 admin';
+end $$;
+
+reset role;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+set local role anon;
+do $$ begin
+  assert (select featured_at from public.public_listings where id='20000000-0000-4000-8000-000000000001') is not null, 'anon: sees the featured timestamp of the listed home';
+  raise notice 'PASS 0019 anon sees featured';
+end $$;
+
 reset role;
 rollback;
 \echo ALL RLS CHECKS PASSED

@@ -338,7 +338,109 @@
 .home-title h2 span { font-weight: 300; }
 .home-title p { margin-top: 14px; font-size: 15.4px; line-height: 1.5; color: var(--mute); }
 
-/* Provided services (reference .service-box) */
+/* Title variants */
+.home-title--accent h2 { color: var(--navy); }
+.home-title--accent h2 span { font-weight: 700; }
+.home-title--light { color: #fff; }
+.home-title--light h2, .home-title--light p { color: #fff; }
+
+/* ---------- Why choose HomeLy: text card + media slider (reference: card overlapping the media) ---------- */
+
+.home-why { position: relative; isolation: isolate; padding: 90px 0; overflow: hidden; }
+.home-why::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 60px;
+  bottom: 60px;
+  width: 42%;
+  background: var(--tint);
+  z-index: -1;
+}
+.home-why__grid { display: grid; gap: 24px; align-items: center; }
+@media (min-width: 992px) {
+  .home-why__grid { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 0; }
+  .home-why__card { position: relative; z-index: 2; margin-right: -80px; }
+}
+.home-why__card {
+  padding: 50px 40px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+.home-why__tag { display: inline-block; margin-bottom: 18px; padding: 6px 14px; border-radius: 4px; background: var(--tint); color: var(--navy); font-size: 14px; font-weight: 600; }
+.home-why__card h2 { margin-bottom: 18px; font-size: 30px; font-weight: 700; line-height: 1.3; color: var(--text); text-wrap: balance; }
+.home-why__card p { margin-bottom: 26px; font-size: 15px; line-height: 1.75; color: var(--mute); }
+.home-why__media { position: relative; border-radius: 10px; overflow: hidden; box-shadow: var(--shadow); background: var(--tint); }
+.home-why__media .home-media { aspect-ratio: 16 / 10; }
+@media (min-width: 992px) { .home-why__media .home-media { aspect-ratio: 16 / 11; } }
+
+/* Media slider (images + videos) */
+.home-media { position: relative; overflow: hidden; background: var(--tint); }
+.home-media--empty { display: flex; align-items: center; justify-content: center; min-height: 240px; color: var(--soft); }
+.home-media__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #000; }
+.home-media__play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 100%;
+  background: #fff;
+  color: var(--navy);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 14px rgba(255, 255, 255, 0.35);
+  transition: transform 160ms ease;
+}
+.home-media__play:hover { transform: translate(-50%, -50%) scale(1.06); }
+.home-media__caption { position: absolute; left: 16px; bottom: 44px; z-index: 3; padding: 4px 10px; border-radius: 4px; background: rgba(28, 45, 58, 0.8); color: #fff; font-size: 12px; }
+.home-media .home-slide__arrow { opacity: 1; }
+.home-media .home-slide__dots { bottom: 16px; }
+
+/* ---------- Property of the day (reference: dark band + split card) ---------- */
+
+.home-potd { position: relative; isolation: isolate; padding: 90px 0; background: var(--navy); color: #fff; overflow: hidden; }
+.home-potd__bg { object-fit: cover; object-position: 50% 40%; z-index: -2; }
+.home-potd__overlay { position: absolute; inset: 0; z-index: -1; background: rgba(0, 0, 0, 0.62); }
+.home-potd .home-title { margin-bottom: 40px; }
+.home-potd__card {
+  display: grid;
+  max-width: 76rem;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  color: var(--text);
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.5);
+}
+@media (min-width: 992px) { .home-potd__card { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.home-potd__media { position: relative; }
+.home-potd__slider { aspect-ratio: 16 / 11; }
+@media (min-width: 992px) {
+  .home-potd__media { min-height: 460px; }
+  .home-potd__slider { position: absolute; inset: 0; aspect-ratio: auto; }
+}
+.home-potd__body { display: flex; flex-direction: column; }
+.home-potd__head { padding: 40px 40px 30px; border-bottom: 1px solid var(--line); }
+.home-potd__head h3 { font-size: 26px; font-weight: 700; line-height: 1.25; color: var(--text); }
+.home-potd__head h3 span { color: var(--navy); }
+.home-potd__addr { margin: 10px 0 14px; font-size: 14px; font-weight: 500; color: var(--text); }
+.home-potd__desc { font-size: 15px; line-height: 1.7; color: var(--mute); display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.home-potd__facts { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 22px; margin: 0; padding: 24px 40px; list-style: none; border-bottom: 1px solid var(--line); }
+.home-potd__fact { display: inline-flex; align-items: center; gap: 12px; font-size: 16px; color: var(--text); }
+.home-potd__fact i { display: inline-flex; align-items: center; justify-content: center; width: 50px; height: 50px; border-radius: 6px; background: var(--tint); color: var(--navy); font-style: normal; }
+.home-potd__fact--pill { padding: 12px 22px; border-radius: 6px; background: var(--tint); color: var(--navy); font-weight: 600; }
+.home-potd__foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 28px 40px 32px; margin-top: auto; }
+.home-potd__price { font-size: 26px; font-weight: 700; line-height: 1.1; color: var(--navy); }
+.home-potd__price small { display: block; margin-top: 6px; font-size: 15px; font-weight: 500; color: var(--soft); }
+.home-potd__cta { text-transform: uppercase; letter-spacing: 0.5px; padding-inline: 34px; }
+
+/* Provided services (reference .service-box) — kept for reuse */
 .home-services { display: grid; gap: 30px; list-style: none; margin: 0; padding: 0; }
 @media (min-width: 768px) { .home-services { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (min-width: 1200px) { .home-services { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

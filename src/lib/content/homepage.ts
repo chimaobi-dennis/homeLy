@@ -29,31 +29,28 @@ export const LOOKING_FOR = {
   ] as ReadonlyArray<{ label: string; href: string; icon: "home" | "list" | "key" }>,
 } as const;
 
-export const SERVICES = {
-  bold: "Provided",
-  light: "Services",
-  intro: "Every home on HomeLy is inspected in person, priced in writing and managed by one accountable team.",
-  items: [
-    {
-      icon: "inspect",
-      title: "Inspected before it's listed",
-      body: "A person from our Enugu team stands inside every home and photographs every room before it goes up. If it hasn't been inspected, it isn't on HomeLy.",
-      cta: { label: "View homes", href: "/search" },
-    },
-    {
-      icon: "fees",
-      title: "Fees in writing, before you commit",
-      // The fee sentence is composed at render time from src/lib/fees.ts.
-      body: "Fixed, published fees on every listing, so you know the full cost before you ask to view. Nothing is added at the door.",
-      cta: { label: "See the fee sheet", href: "/landlord/apply" },
-    },
-    {
-      icon: "repairs",
-      title: "Rent collection and repairs, handled",
-      body: "HomeLy collects rent and manages repairs on the landlord's behalf, so you deal with one accountable team rather than a chain of middlemen.",
-      cta: { label: "For landlords", href: "/landlord/apply" },
-    },
-  ] as ReadonlyArray<{ icon: "inspect" | "fees" | "repairs"; title: string; body: string; cta: { label: string; href: string } }>,
+/**
+ * "Why choose HomeLy" (reference: the card + media block). PLACEHOLDER COPY —
+ * the owner will write the final words; keep the structure (tag, heading,
+ * paragraph, button). The media next to it comes from /admin/homepage.
+ */
+export const WHY_HOMELY = {
+  tag: "#HomeLy",
+  heading: "Worried about finding a home in Enugu?",
+  body: "We know how it feels. Every home on HomeLy is inspected in person, the fees are printed on the listing, and the queue rewards waiting rather than who you know.",
+  cta: { label: "Search now", href: "/search" },
+} as const;
+
+/** "Property of the day" band. PLACEHOLDER intro — owner to rewrite. */
+export const PROPERTY_OF_DAY = {
+  heading: "Property of the day",
+  intro: "One inspected home in Enugu, picked by the HomeLy team.",
+} as const;
+
+/** "Latest property listing" title. PLACEHOLDER intro — owner to rewrite. */
+export const LATEST_LISTING = {
+  heading: "Latest property listing",
+  intro: "Inspected homes in Enugu, newest first. Fees are published on every listing.",
 } as const;
 
 export const ABOUT = {

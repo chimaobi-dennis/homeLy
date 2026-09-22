@@ -92,6 +92,15 @@ Vercel deployment, and the current tenant-first homepage (its §13/§14/§17 and
   in the browser (localStorage), with a /saved page and a /compare page. When
   tenant accounts exist, move saved homes server-side (decision pending).
 - 2026-09-22 — Owner rule: push `main` after every verified edit (rule 8).
+- 2026-09-22 — Homepage sections after the hero now follow the reference theme
+  pages: (1) "Why choose HomeLy" = text card (tag, heading, paragraph, button;
+  PLACEHOLDER copy in `WHY_HOMELY`, owner writes the final words) next to a
+  slider of admin-uploaded images/videos; (2) "Property of the day" = dark band
+  with a split card (photo slider + details) for the admin-featured listing
+  (`properties.featured_at`, latest wins; newest listing if none); (3) "Latest
+  property listing" = the cards. "Provided services" section removed; About
+  kept below the listings. Migration 0019: `featured_at` (admin-only via the
+  guard trigger), `homepage_media` table, PUBLIC `site-media` bucket.
 
 ## Tech stack
 
@@ -377,9 +386,21 @@ Placeholder copy lives in `src/lib/content/enugu-ops.ts` (square brackets = repl
 - `/` = transparent navy-text nav over the hero (`site-nav.tsx`, hamburger
   <details> under 992px) → hero (`.home-hero`: aerial photo, dark gradient
   overlay, `hero-slider.tsx` text slides from `HERO_SLIDES`, `looking-for.tsx`
-  tiles, `filter-box.tsx` dark variant) → Provided Services (`SERVICES`,
-  `section-title.tsx`) → about (`ABOUT`) → Available apartments (6 newest,
-  `property-grid.tsx` 3 columns) → landlord band → contact → `site-footer.tsx`.
+  tiles, `filter-box.tsx` dark variant) → "Why choose HomeLy" (`.home-why`:
+  `WHY_HOMELY` card + `media-slider.tsx` fed by `getHomepageMedia()`; falls
+  back to the hero photo when nothing is uploaded) → "Property of the day"
+  (`.home-potd`, `featured-property.tsx`, `getFeaturedListing()`; hidden when
+  there are no listings) → "Latest property listing" (`LATEST_LISTING`,
+  `property-grid.tsx` 3 columns, `section-title.tsx` variant="accent") →
+  about (`ABOUT`) → landlord band → contact → `site-footer.tsx`.
+- Admin: `/admin/homepage` (admin only) manages the media slider (upload
+  image/video from the browser straight into the PUBLIC `site-media` bucket
+  under the admin's session — storage policies — then `recordHomepageMedia`
+  inserts the `homepage_media` row; caption / sort / active / delete) and the
+  featured listing (feature / unfeature; also a button in the property editor).
+  `homepage_media` RLS: anyone reads active rows, admin reads/writes all.
+  `media-slider.tsx` plays videos with a play button + native controls; no
+  auto-advance so playback is never interrupted.
 - `/search` = banner + breadcrumb → sidebar (FilterBox light variant, Areas with
   counts from `getAreaCounts()`, Contact info from env, Recently added) →
   results (`SortSelect`, view toggles `?view=2|3|list`, `PropertyGrid`,

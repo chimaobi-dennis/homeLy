@@ -36,6 +36,47 @@ export type Database = {
         }
         Relationships: []
       }
+      homepage_media: {
+        Row: {
+          caption: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          kind: string
+          sort_order: number
+          storage_path: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          kind: string
+          sort_order?: number
+          storage_path: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          kind?: string
+          sort_order?: number
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "homepage_media_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       landlord_documents: {
         Row: {
           document_type: Database["public"]["Enums"]["landlord_document_type"]
@@ -180,6 +221,7 @@ export type Database = {
           city: string
           created_at: string
           description: string | null
+          featured_at: string | null
           furnishing: Database["public"]["Enums"]["property_furnishing"] | null
           id: string
           landlord_id: string
@@ -202,6 +244,7 @@ export type Database = {
           city?: string
           created_at?: string
           description?: string | null
+          featured_at?: string | null
           furnishing?: Database["public"]["Enums"]["property_furnishing"] | null
           id?: string
           landlord_id: string
@@ -224,6 +267,7 @@ export type Database = {
           city?: string
           created_at?: string
           description?: string | null
+          featured_at?: string | null
           furnishing?: Database["public"]["Enums"]["property_furnishing"] | null
           id?: string
           landlord_id?: string
@@ -546,6 +590,7 @@ export type Database = {
           bedrooms: number | null
           city: string | null
           description: string | null
+          featured_at: string | null
           furnishing: Database["public"]["Enums"]["property_furnishing"] | null
           id: string | null
           listed_at: string | null
@@ -561,6 +606,7 @@ export type Database = {
           bedrooms?: number | null
           city?: string | null
           description?: string | null
+          featured_at?: string | null
           furnishing?: Database["public"]["Enums"]["property_furnishing"] | null
           id?: string | null
           listed_at?: string | null
@@ -576,6 +622,7 @@ export type Database = {
           bedrooms?: number | null
           city?: string | null
           description?: string | null
+          featured_at?: string | null
           furnishing?: Database["public"]["Enums"]["property_furnishing"] | null
           id?: string | null
           listed_at?: string | null

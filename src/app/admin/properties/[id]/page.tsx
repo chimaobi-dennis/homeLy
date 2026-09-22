@@ -10,6 +10,7 @@ import { PROPERTY_STATUS } from "@/lib/status-labels";
 import { createClient } from "@/lib/supabase/server";
 import { isUuid } from "@/lib/validation";
 import { deletePhoto, movePhoto, publishProperty, unpublishProperty, updateListing, updatePhotoCaption } from "../actions";
+import { featureProperty, unfeatureProperty } from "../../homepage/actions";
 import { PhotoUploader } from "./photo-uploader";
 
 export const metadata: Metadata = { title: "Edit listing · HomeLy admin" };
@@ -233,12 +234,21 @@ export default async function AdminPropertyEditorPage({
                 </form>
               ) : null}
               {property.status === "listed" ? (
-                <form action={unpublishProperty}>
-                  <input type="hidden" name="propertyId" value={property.id} />
-                  <button type="submit" className="rounded border border-red-700 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50 dark:text-red-300">
-                    Unpublish
-                  </button>
-                </form>
+                <>
+                  <form action={unpublishProperty}>
+                    <input type="hidden" name="propertyId" value={property.id} />
+                    <button type="submit" className="rounded border border-red-700 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50 dark:text-red-300">
+                      Unpublish
+                    </button>
+                  </form>
+                  <form action={property.featured_at ? unfeatureProperty : featureProperty}>
+                    <input type="hidden" name="propertyId" value={property.id} />
+                    <input type="hidden" name="returnTo" value={`/admin/properties/${property.id}`} />
+                    <button type="submit" className="rounded border border-zinc-400 px-3 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-600 dark:hover:bg-zinc-800">
+                      {property.featured_at ? "Remove from homepage" : "Feature on homepage"}
+                    </button>
+                  </form>
+                </>
               ) : null}
               {property.status === "submitted" || property.status === "rejected" ? (
                 <p className="text-sm text-zinc-500">

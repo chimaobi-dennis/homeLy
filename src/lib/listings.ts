@@ -107,3 +107,22 @@ export const SORT_OPTIONS = [
   { value: "rent_asc", label: "Rent (low to high)" },
 ] as const;
 export type ListingSort = (typeof SORT_OPTIONS)[number]["value"];
+
+/* ---------- Homepage media (admin-uploaded images/videos for the "Why choose HomeLy" slider) ---------- */
+
+export const SITE_MEDIA_BUCKET = "site-media"; // PUBLIC bucket (marketing assets served by URL)
+export const SITE_MEDIA_MAX_BYTES = 60 * 1024 * 1024;
+export const SITE_MEDIA_IMAGE_MIME = ["image/jpeg", "image/png", "image/webp"] as const;
+export const SITE_MEDIA_VIDEO_MIME = ["video/mp4", "video/webm", "video/quicktime"] as const;
+
+export function siteMediaKind(mime: string): "image" | "video" | null {
+  if ((SITE_MEDIA_IMAGE_MIME as readonly string[]).includes(mime)) return "image";
+  if ((SITE_MEDIA_VIDEO_MIME as readonly string[]).includes(mime)) return "video";
+  return null;
+}
+
+/** homepage/<uuid>-<safe-name>: the table's check constraint requires the `homepage/` prefix. */
+export function siteMediaPath(filename: string): string {
+  const safe = filename.toLowerCase().replace(/[^a-z0-9.]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "media";
+  return `homepage/${crypto.randomUUID()}-${safe}`;
+}

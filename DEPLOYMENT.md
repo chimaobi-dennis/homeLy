@@ -275,9 +275,10 @@ list is done, the production project is NOT safe to share.
 
 | Version | Name | Status |
 |---|---|---|
-| 20260922200100 | public_listings_description | **pending** — paste `supabase/migrations/20260922200100_public_listings_description.sql`, then `insert into supabase_migrations.schema_migrations (version, name) values ('20260922200100', 'public_listings_description');` |
+| 20260922200100 | public_listings_description | applied 2026-09-22 |
+| 20260922300100 | homepage_media_and_featured | **pending** — paste `supabase/migrations/20260922300100_homepage_media_and_featured.sql`, then `insert into supabase_migrations.schema_migrations (version, name) values ('20260922300100', 'homepage_media_and_featured');` |
 
-Until it is applied, production `/` and `/search` fail (the view has no `description` column there). Do not push `main` before running it.
+Until the pending one is applied, production `/` fails (no `homepage_media` table / `featured_at` column there). Do not push `main` before running it.
 
 ## 7c. Migrations after go-live — hand-off workflow
 
