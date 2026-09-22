@@ -35,7 +35,12 @@ export type IconName =
   | "map-pin"
   | "phone"
   | "mail"
-  | "close";
+  | "close"
+  | "share"
+  | "print"
+  | "check"
+  | "calendar"
+  | "sofa";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   home: (
@@ -142,4 +147,30 @@ const PATHS: Record<IconName, React.ReactNode> = {
     </>
   ),
   close: <path d="M6 6l12 12M18 6 6 18" />,
+  share: (
+    <>
+      <path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7" />
+      <path d="M16 6l-4-4-4 4M12 2v13" />
+    </>
+  ),
+  print: (
+    <>
+      <path d="M6 9V3h12v6" />
+      <rect x="3" y="9" width="18" height="8" rx="2" />
+      <path d="M6 14h12v7H6z" />
+    </>
+  ),
+  check: <path d="m5 12 4.5 4.5L19 7" />,
+  calendar: (
+    <>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
+    </>
+  ),
+  sofa: (
+    <>
+      <path d="M4 12V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4" />
+      <path d="M3 12h18v5H3zM5 17v2M19 17v2" />
+    </>
+  ),
 };

@@ -1,32 +1,38 @@
-"use client";
-
 import Image from "next/image";
+import Link from "next/link";
 import { formatNgn } from "@/lib/fees";
 import type { PublicListingCard } from "@/lib/public-listings";
 import { Icon } from "./icons";
 
 const dateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 
-export function listingTitle(l: PublicListingCard): string {
+export function listingTitle(l: { listing_headline: string | null; bedrooms: number | null; area: string | null; city: string | null }): string {
   return l.listing_headline ?? `${l.bedrooms ?? "—"}-bedroom in ${l.area ?? l.city ?? "Enugu"}`;
+}
+
+export function listingHref(id: string): string {
+  return `/homes/${id}`;
 }
 
 /**
  * Property card (reference: Sheltos `.property-box`): photo with label + photo count,
- * hover overlay with a quick-view button, then area, headline, rent, description,
+ * hover overlay with an open button, then area, headline, rent, description,
  * bed / bath / size facts and a footer with the listed date and a "Details" button.
- * Privacy: only the anon view's columns ever reach this component.
+ * Everything opens the property page. Privacy: only the anon view's columns reach here.
  */
-export function PropertyCard({ listing, onOpen, layout = "grid" }: { listing: PublicListingCard; onOpen: () => void; layout?: "grid" | "list" }) {
+export function PropertyCard({ listing, layout = "grid" }: { listing: PublicListingCard; layout?: "grid" | "list" }) {
   const title = listingTitle(listing);
+  const href = listingHref(listing.id);
   return (
     <article className={`home-prop${layout === "list" ? " home-prop--list" : ""}`}>
       <div className="home-prop__image">
-        {listing.coverUrl ? (
-          <Image src={listing.coverUrl} alt={listing.coverAlt ?? title} fill sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw" className="object-cover" />
-        ) : (
-          <div className="home-prop__nophoto font-roboto">Photos coming</div>
-        )}
+        <Link href={href} className="home-prop__imagelink" aria-label={title} tabIndex={-1}>
+          {listing.coverUrl ? (
+            <Image src={listing.coverUrl} alt={listing.coverAlt ?? title} fill sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 100vw" className="object-cover" />
+          ) : (
+            <div className="home-prop__nophoto font-roboto">Photos coming</div>
+          )}
+        </Link>
         <div className="home-prop__labels">
           <span className="home-label">Inspected</span>
         </div>
@@ -37,17 +43,17 @@ export function PropertyCard({ listing, onOpen, layout = "grid" }: { listing: Pu
           </span>
         ) : null}
         <div className="home-prop__overlay">
-          <button type="button" className="home-prop__round" onClick={onOpen} aria-label={`Quick view: ${title}`}>
+          <Link href={href} className="home-prop__round" aria-label={`Open: ${title}`}>
             <Icon name="maximize" size={18} />
-          </button>
+          </Link>
         </div>
       </div>
       <div className="home-prop__details">
         <span className="home-prop__area font-roboto">{listing.area ?? listing.city ?? "Enugu"}</span>
         <h3>
-          <button type="button" className="home-prop__title" onClick={onOpen}>
+          <Link href={href} className="home-prop__title">
             {title}
-          </button>
+          </Link>
         </h3>
         <p className="home-prop__price data">
           {formatNgn(listing.annual_rent)}
@@ -67,9 +73,9 @@ export function PropertyCard({ listing, onOpen, layout = "grid" }: { listing: Pu
         </ul>
         <div className="home-prop__foot">
           <span>{listing.listed_at ? dateFmt.format(new Date(listing.listed_at)) : "Recently listed"}</span>
-          <button type="button" className="btn btn--dashed" onClick={onOpen}>
+          <Link href={href} className="btn btn--dashed">
             Details
-          </button>
+          </Link>
         </div>
       </div>
     </article>

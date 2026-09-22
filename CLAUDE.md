@@ -79,7 +79,13 @@ Vercel deployment, and the current tenant-first homepage (its §13/§14/§17 and
   Filters everywhere: keyword, area, furnishing, bed, bath, rent range, size
   range (dual native range inputs); sort + view + page params on /search.
 - 2026-09-22 — Migration 0018 appends `description` to `public_listings` (staff-
-  written public copy; cards show it). NOT on cloud until the owner runs it.
+  written public copy; cards show it). Applied on cloud by the owner the same day.
+- 2026-09-22 — Opening an apartment goes to its own page `/homes/[id]`, laid out
+  on Sheltos `property/thumbnail-image` (title card with facts + share/print,
+  gallery with thumbnail strip, Property details list, Fees, Features, Related
+  homes; sidebar: Contact info, Request a viewing (= contact form pre-filled),
+  Recently added). The quick-view dialog was removed. No address on the page;
+  the copy says the exact address is shared with verified tenants.
 
 ## Tech stack
 
@@ -375,9 +381,15 @@ Placeholder copy lives in `src/lib/content/enugu-ops.ts` (square brackets = repl
   bathrooms min_rent max_rent min_size max_size sort page view`; all parsed
   defensively in `parseListingQuery/parsePage/parseView`; slider values at their
   bound (`RENT_RANGE`/`SIZE_RANGE` in `lib/listings.ts`) mean "no limit".
-- Cards (`property-card.tsx`) and the quick-view `<dialog>`
-  (`listing-quick-view.tsx`) only ever receive the anon view's columns. Clicking
-  a card opens the quick view on the same page (no public detail page exists).
+- `/homes/[id]` (`src/app/homes/[id]/page.tsx`, ISR 60 s, 404 for non-UUIDs and
+  unlisted ids) = the property page: `getPublicListingById()` (anon view + every
+  photo signed), `photo-gallery.tsx` (client, thumbnails, ←/→), `share-buttons.tsx`
+  (Web Share / copy link, print), details list, fees from `FEES`, amenity
+  features, related homes (same area first), sidebar contact card + the contact
+  form (`compact`, `defaultMessage`) + recently added. `SiteNav variant="solid"`
+  (white bar) because the page has no banner.
+- Cards (`property-card.tsx`, server) only ever receive the anon view's columns;
+  every part of a card links to `/homes/[id]`.
 - Data: `getPublicListingsPage()` (count + range + sort), `getPublicListings()`,
   `getAreaCounts()`, `getListingAreas()` in `lib/public-listings.ts`; photos are
   signed server-side (1 h), pages cached 60 s (`/` ISR; `/search` dynamic).

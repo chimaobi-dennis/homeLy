@@ -38,21 +38,28 @@ for r in "${ROWS[@]}"; do
   IFS='|' read -r n area head beds baths sqm furn rent amen avail off <<<"$r"
   pid="00000000-0000-4000-8000-000000000$n"
   path="$pid/aaaaaaaa-0000-4000-8000-000000000$n-cover.jpg"
+  path2="$pid/bbbbbbbb-0000-4000-8000-000000000$n-living.jpg"
   # shellcheck disable=SC2086
   sips -c 300 480 --cropOffset $off "$SRC" --out "$TMP/$n.jpg" >/dev/null
+  # Second photo: a wider crop offset the other way, so galleries get a thumbnail strip.
+  read -r oy ox <<<"$off"; oy2=$(( (oy + 220) % 600 )); ox2=$(( (ox + 260) % 560 ))
+  sips -c 300 480 --cropOffset $oy2 $ox2 "$SRC" --out "$TMP/$n-2.jpg" >/dev/null
   # Delete-then-create: the local storage image rejects x-upsert with 42P10, and a
   # plain POST on an existing path returns 400, so re-runs replace the object.
-  curl -s -o /dev/null -X DELETE "$API/storage/v1/object/property-photos/$path" -H "apikey: $SR" -H "Authorization: Bearer $SR"
-  code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$API/storage/v1/object/property-photos/$path" \
-    -H "apikey: $SR" -H "Authorization: Bearer $SR" -H "Content-Type: image/jpeg" --data-binary "@$TMP/$n.jpg")
-  echo "photo $n → HTTP $code"
+  for pair in "$path|$TMP/$n.jpg" "$path2|$TMP/$n-2.jpg"; do
+    IFS='|' read -r objpath file <<<"$pair"
+    curl -s -o /dev/null -X DELETE "$API/storage/v1/object/property-photos/$objpath" -H "apikey: $SR" -H "Authorization: Bearer $SR"
+    code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$API/storage/v1/object/property-photos/$objpath" \
+      -H "apikey: $SR" -H "Authorization: Bearer $SR" -H "Content-Type: image/jpeg" --data-binary "@$file")
+    echo "photo $objpath → HTTP $code"
+  done
   availsql="null"; [ -n "$avail" ] && availsql="'$avail'"
   SQL+="
 insert into public.properties (id, landlord_id, address, city, area, bedrooms, bathrooms, size_sqm, furnishing, amenities, listing_headline, description, target_annual_rent, available_from, status)
 values ('$pid', '$LANDLORD', 'Dev fixture $n (private address), Enugu', 'Enugu', '$area', $beds, $baths, $sqm, '$furn', '$amen', '$head', 'Local development fixture. Not a real listing.', $rent, $availsql, 'under_inspection')
 on conflict (id) do nothing;
 insert into public.property_photos (property_id, storage_path, caption, sort_order)
-values ('$pid', '$path', 'Front view', 0) on conflict (storage_path) do nothing;
+values ('$pid', '$path', 'Front view', 0), ('$pid', '$path2', 'Living area', 1) on conflict (storage_path) do nothing;
 update public.properties set status = 'listed' where id = '$pid' and status <> 'listed';"
 done
 

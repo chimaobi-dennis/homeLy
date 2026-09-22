@@ -209,7 +209,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
               </div>
             </div>
           ) : (
-            <PropertyGrid listings={items} columns={view} whatsappE164={contact.whatsappE164} />
+            <PropertyGrid listings={items} columns={view} />
           )}
 
           {pages > 1 ? (

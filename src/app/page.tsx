@@ -101,7 +101,7 @@ export default async function Home() {
           {listings.length === 0 ? (
             <p className="home-empty font-roboto">{EMPTY_LISTINGS}</p>
           ) : (
-            <PropertyGrid listings={listings} columns="3" whatsappE164={contact.whatsappE164} />
+            <PropertyGrid listings={listings} columns="3" />
           )}
           <div className="mt-10 flex justify-center">
             <Link href={listings.length === 0 ? "/waitlist" : "/search"} className="btn btn--gradient">

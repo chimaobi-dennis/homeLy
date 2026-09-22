@@ -135,6 +135,47 @@ export async function getPublicListings(q: ListingQuery = {}): Promise<PublicLis
   return (await getPublicListingsPage(q)).items;
 }
 
+export type PublicListingDetail = PublicListing & {
+  id: string;
+  photos: Array<{ url: string; alt: string | null }>;
+};
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export function isUuid(value: string): boolean {
+  return UUID_RE.test(value);
+}
+
+/**
+ * One LISTED property for the public detail page, with every photo signed.
+ * Returns null when the id is not a listed property (the page then 404s).
+ * Still the anon view: no address, landlord, status or threshold.
+ */
+export async function getPublicListingById(id: string): Promise<PublicListingDetail | null> {
+  if (!isUuid(id)) return null;
+  const supabase = createPublicClient();
+  const { data } = await supabase.from("public_listings").select("*").eq("id", id).maybeSingle();
+  if (!data || typeof data.id !== "string") return null;
+
+  const { data: rows } = await supabase
+    .from("public_listing_photos")
+    .select("storage_path, caption, sort_order")
+    .eq("property_id", data.id)
+    .order("sort_order", { ascending: true });
+  const paths = (rows ?? []).map((r) => r.storage_path).filter((p): p is string => typeof p === "string");
+  const photos: PublicListingDetail["photos"] = [];
+  if (paths.length) {
+    const admin = createAdminClient();
+    const { data: urls } = await admin.storage.from(PHOTO_BUCKET).createSignedUrls(paths, SIGNED_URL_TTL_SECONDS);
+    const byPath = new Map<string, string>();
+    for (const u of urls ?? []) if (u.path && u.signedUrl) byPath.set(u.path, u.signedUrl);
+    for (const r of rows ?? []) {
+      const url = r.storage_path ? byPath.get(r.storage_path) : undefined;
+      if (url) photos.push({ url, alt: r.caption ?? null });
+    }
+  }
+  return { ...data, id: data.id, photos };
+}
+
 export type ListingSearchParams = {
   q?: string;
   area?: string;

@@ -10,13 +10,14 @@ const LINKS = [
 ];
 
 /**
- * Transparent header laid over the hero / page banner (reference: Sheltos header).
+ * Header (reference: Sheltos header). `overlay` = transparent over the hero / page
+ * banner; `solid` = white with a soft shadow for pages without a banner.
  * No session read, so the pages stay cacheable. Under 992px the menu folds into a
  * <details> hamburger — no JavaScript needed.
  */
-export function SiteNav() {
+export function SiteNav({ variant = "overlay" }: { variant?: "overlay" | "solid" } = {}) {
   return (
-    <header className="home-nav">
+    <header className={`home-nav home-nav--${variant}`}>
       <div className="wrap home-nav__row">
         <Link href="/" className="home-nav__brand">
           HomeLy
