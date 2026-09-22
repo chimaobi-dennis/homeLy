@@ -93,8 +93,9 @@ Vercel deployment, and the current tenant-first homepage (its §13/§14/§17 and
   tenant accounts exist, move saved homes server-side (decision pending).
 - 2026-09-22 — Owner rule: push `main` after every verified edit (rule 8).
 - 2026-09-22 — Homepage sections after the hero now follow the reference theme
-  pages: (1) "Why choose HomeLy" = text card (tag, heading, paragraph, button;
-  PLACEHOLDER copy in `WHY_HOMELY`, owner writes the final words) next to a
+  pages: (1) "Why choose HomeLy" = one slider where the text card (tag,
+  heading, paragraph, button; PLACEHOLDER copy in `WHY_HOMELY_SLIDES`, owner
+  writes the final words) and the media beside it move together, next to a
   slider of admin-uploaded images/videos; (2) "Property of the day" = dark band
   with a split card (photo slider + details) for the admin-featured listing
   (`properties.featured_at`, latest wins; newest listing if none); (3) "Latest
@@ -387,7 +388,7 @@ Placeholder copy lives in `src/lib/content/enugu-ops.ts` (square brackets = repl
   <details> under 992px) → hero (`.home-hero`: aerial photo, dark gradient
   overlay, `hero-slider.tsx` text slides from `HERO_SLIDES`, `looking-for.tsx`
   tiles, `filter-box.tsx` dark variant) → "Why choose HomeLy" (`.home-why`:
-  `WHY_HOMELY` card + `media-slider.tsx` fed by `getHomepageMedia()`; falls
+  `why-slider.tsx` = ONE slider: text slide N (`WHY_HOMELY_SLIDES`) + media N from `getHomepageMedia()` move together, wrapping when there are fewer files than messages; falls
   back to the hero photo when nothing is uploaded) → "Property of the day"
   (`.home-potd`, `featured-property.tsx`, `getFeaturedListing()`; hidden when
   there are no listings) → "Latest property listing" (`LATEST_LISTING`,

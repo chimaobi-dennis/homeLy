@@ -30,16 +30,31 @@ export const LOOKING_FOR = {
 } as const;
 
 /**
- * "Why choose HomeLy" (reference: the card + media block). PLACEHOLDER COPY —
- * the owner will write the final words; keep the structure (tag, heading,
- * paragraph, button). The media next to it comes from /admin/homepage.
+ * "Why choose HomeLy" slides (reference: the card + media block; the card itself
+ * slides between messages). PLACEHOLDER COPY — the owner will write the final
+ * words; keep the structure (tag, heading, paragraph, button) per slide. The
+ * media next to it comes from /admin/homepage.
  */
-export const WHY_HOMELY = {
-  tag: "#HomeLy",
-  heading: "Worried about finding a home in Enugu?",
-  body: "We know how it feels. Every home on HomeLy is inspected in person, the fees are printed on the listing, and the queue rewards waiting rather than who you know.",
-  cta: { label: "Search now", href: "/search" },
-} as const;
+export const WHY_HOMELY_SLIDES: ReadonlyArray<{ tag: string; heading: string; body: string; cta: { label: string; href: string } }> = [
+  {
+    tag: "#Inspected",
+    heading: "Worried about finding a home in Enugu?",
+    body: "We know how it feels. A person from our Enugu team stands inside every home and photographs every room before it goes up. If it hasn't been inspected, it isn't on HomeLy.",
+    cta: { label: "Search now", href: "/search" },
+  },
+  {
+    tag: "#FeesInWriting",
+    heading: "Tired of fees that appear at the door?",
+    body: "Fixed, published fees on every listing, so you know the full cost before you ask to view. Nothing is added at the door, and there is no agent commission on top.",
+    cta: { label: "See available homes", href: "/search" },
+  },
+  {
+    tag: "#TheQueue",
+    heading: "A queue, not connections.",
+    body: "Your place is based on how long you've been on the priority list. Joining earlier means you hear earlier. Nobody skips the line.",
+    cta: { label: "Join the priority list", href: "/waitlist" },
+  },
+];
 
 /** "Property of the day" band. PLACEHOLDER intro — owner to rewrite. */
 export const PROPERTY_OF_DAY = {

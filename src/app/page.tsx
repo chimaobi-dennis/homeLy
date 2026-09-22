@@ -8,12 +8,12 @@ import { FilterBox } from "@/components/home/filter-box";
 import { FeaturedProperty } from "@/components/home/featured-property";
 import { HeroSlider } from "@/components/home/hero-slider";
 import { LookingFor } from "@/components/home/looking-for";
-import { MediaSlider } from "@/components/home/media-slider";
 import { PropertyGrid } from "@/components/home/property-grid";
 import { SectionTitle } from "@/components/home/section-title";
 import { SiteFooter } from "@/components/home/site-footer";
 import { SiteNav } from "@/components/home/site-nav";
-import { ABOUT, EMPTY_LISTINGS, HERO_SLIDES, LANDLORD_BAND, LATEST_LISTING, PROPERTY_OF_DAY, WHY_HOMELY, getContactChannels } from "@/lib/content/homepage";
+import { WhySlider } from "@/components/home/why-slider";
+import { ABOUT, EMPTY_LISTINGS, HERO_SLIDES, LANDLORD_BAND, LATEST_LISTING, PROPERTY_OF_DAY, WHY_HOMELY_SLIDES, getContactChannels } from "@/lib/content/homepage";
 import { getFeaturedListing, getListingAreas, getPublicListings } from "@/lib/public-listings";
 import { getHomepageMedia } from "@/lib/site-media";
 import "./home.css";
@@ -57,19 +57,7 @@ export default async function Home() {
 
       {/* ---------------- 2. Why choose HomeLy: text card + admin-uploaded image/video slider ---------------- */}
       <section className="home-why" aria-labelledby="why-heading">
-        <div className="wrap home-why__grid">
-          <div className="home-why__card reveal">
-            <span className="home-why__tag">{WHY_HOMELY.tag}</span>
-            <h2 id="why-heading">{WHY_HOMELY.heading}</h2>
-            <p className="font-roboto">{WHY_HOMELY.body}</p>
-            <Link href={WHY_HOMELY.cta.href} className="btn btn--gradient">
-              {WHY_HOMELY.cta.label}
-            </Link>
-          </div>
-          <div className="home-why__media">
-            <MediaSlider items={mediaItems} sizes="(min-width: 992px) 60vw, 100vw" />
-          </div>
-        </div>
+        <WhySlider slides={WHY_HOMELY_SLIDES} media={mediaItems} headingId="why-heading" />
       </section>
 
       {/* ---------------- 3. Property of the day ---------------- */}
