@@ -56,7 +56,7 @@ insert into public.waitlist_entries (id, name, whatsapp_number, email) values
 insert into public.tenants (id, waitlist_entry_id, kyc_status) values ('10000000-0000-4000-8000-0000000000a7','40000000-0000-4000-8000-000000000001','pending');
 insert into public.tenants (id, kyc_status) values ('10000000-0000-4000-8000-0000000000a8','pending');
 -- Step 7 fixtures: listing content + one photo each for p1 and p2 (p1 is listed by the admin block below).
-update public.properties set description='Two-bedroom flat, first floor, tiled, borehole water.', listing_headline='Bright 2-bed in Independence Layout', amenities='{borehole_water,prepaid_meter}', bathrooms=2
+update public.properties set description='Two-bedroom flat, first floor, tiled, borehole water.', listing_headline='Bright 2-bed in Independence Layout', amenities='{borehole_water,prepaid_meter}', bathrooms=2, area='Independence Layout'
  where id='20000000-0000-4000-8000-000000000001';
 insert into public.property_photos (id, property_id, storage_path, sort_order) values
  ('60000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001/a.jpg',0),
@@ -721,6 +721,105 @@ do $$ begin
   assert (select count(*) from public.profiles where id::text like '10000000-%' and 'landlord' = any(role_tags)) >= 2, 'staff: reads landlord profiles (names for the properties list)';
   assert (select count(*) from public.profiles where id::text like '10000000-%' and 'admin' = any(role_tags)) = 0, 'staff: still cannot read admin profiles';
   raise notice 'PASS step7 staff: landlord-profile read is narrow';
+end $$;
+
+-- ===========================================================================
+-- HOMEPAGE REDESIGN: public views, contact_messages, area column
+-- ===========================================================================
+reset role;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+set local role anon;
+do $$ declare ok boolean; v uuid; i int; begin
+  -- Public view: listed rows only, safe columns only.
+  assert (select count(*) from public.public_listings where id::text like '20000000-%') = 1, 'anon: public_listings shows exactly the listed fixture';
+  assert (select area from public.public_listings where id='20000000-0000-4000-8000-000000000001') = 'Independence Layout', 'anon: sees the area';
+  assert (select annual_rent from public.public_listings where id='20000000-0000-4000-8000-000000000001') = 1500000, 'anon: sees the rent';
+  ok := false;
+  begin perform (select address from public.public_listings limit 1);
+  exception when undefined_column then ok := true; end;
+  assert ok, 'anon: public_listings has NO address column';
+  ok := false;
+  begin perform (select landlord_id from public.public_listings limit 1);
+  exception when undefined_column then ok := true; end;
+  assert ok, 'anon: public_listings has NO landlord_id column';
+  ok := false;
+  begin perform (select status from public.public_listings limit 1);
+  exception when undefined_column then ok := true; end;
+  assert ok, 'anon: public_listings has NO status column';
+  ok := false; begin perform count(*) from public.properties; exception when insufficient_privilege then ok := true; end;
+  assert ok, 'anon: still cannot read the properties table itself';
+  ok := false;
+  begin perform (select maintenance_threshold_ngn from public.public_listings limit 1);
+  exception when undefined_column then ok := true; end;
+  assert ok, 'anon: public_listings has NO maintenance_threshold_ngn column';
+  -- Unlisted p2 / p3 never appear even when addressed directly.
+  assert (select count(*) from public.public_listings where id in ('20000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000003')) = 0, 'anon: cannot read an unlisted property through the view';
+  -- Photo paths for listed only.
+  assert (select count(*) from public.public_listing_photos where property_id='20000000-0000-4000-8000-000000000001') >= 1, 'anon: photo paths of a listed property';
+  assert (select count(*) from public.public_listing_photos where property_id='20000000-0000-4000-8000-000000000002') = 0, 'anon: no photo paths of an unlisted property';
+  assert (select count(*) from storage.objects where bucket_id='property-photos') = 0, 'anon: still cannot read photo objects (bucket stays private)';
+  -- Contact form: only via the RPC; rate limited; never readable back.
+  ok := false;
+  begin insert into public.contact_messages (name, whatsapp_number, message) values ('x','08000000000','y');
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'anon: no direct insert into contact_messages';
+  -- IP limit: 5 per hour per connection (distinct numbers so the per-number limit stays out of the way)
+  for i in 1..5 loop
+    v := public.submit_contact_message('Ada Test', '+234800000000' || i, 'Hello HomeLy', 'iphash-a');
+  end loop;
+  ok := false;
+  begin v := public.submit_contact_message('Ada Test', '+2348000000099', 'Hello again', 'iphash-a');
+  exception when raise_exception then ok := true; end;
+  assert ok, 'anon: 6th message from the same connection in an hour is refused';
+  -- Number limit: 3 per day per WhatsApp number (distinct connections)
+  for i in 1..3 loop
+    v := public.submit_contact_message('Ben Test', '+2348000000077', 'Hello HomeLy', 'iphash-b' || i);
+  end loop;
+  ok := false;
+  begin v := public.submit_contact_message('Ben Test', '+2348000000077', 'Hello again', 'iphash-b9');
+  exception when raise_exception then ok := true; end;
+  assert ok, 'anon: 4th message from the same WhatsApp number in a day is refused';
+  ok := false;
+  begin v := public.submit_contact_message('', '+2348000000002', 'x', 'iphash-c');
+  exception when check_violation then ok := true; end;
+  assert ok, 'anon: blank name rejected';
+  ok := false; begin perform count(*) from public.contact_messages; exception when insufficient_privilege then ok := true; end;
+  assert ok, 'anon: cannot read contact messages back';
+  raise notice 'PASS homepage: anon public views + contact RPC';
+end $$;
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-0000000000a3","role":"authenticated"}', true);
+set local role authenticated;
+do $$ declare n int; ok boolean; begin
+  assert (select count(*) from public.contact_messages) = 0, 'landlord: cannot read contact messages';
+  ok := false;
+  begin update public.properties set area='Somewhere Else' where id='20000000-0000-4000-8000-000000000001';
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'landlord: cannot write area (listing content)';
+  ok := false;
+  begin perform (select address from public.public_listings limit 1);
+  exception when undefined_column then ok := true; end;
+  assert ok, 'landlord: public view still has no address column';
+  raise notice 'PASS homepage: landlord';
+end $$;
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-0000000000a2","role":"authenticated"}', true);
+set local role authenticated;
+do $$ declare n int; begin
+  update public.properties set area='Trans Ekulu' where id='20000000-0000-4000-8000-000000000002';
+  get diagnostics n = row_count; assert n = 1, 'staff: writes area (listing content)';
+  assert (select count(*) from public.contact_messages where message='Hello HomeLy') = 8, 'staff: reads contact messages';
+  raise notice 'PASS homepage: staff';
+end $$;
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-0000000000a1","role":"authenticated"}', true);
+set local role authenticated;
+do $$ begin
+  assert (select count(*) from public.contact_messages where message='Hello HomeLy') = 8, 'admin: reads contact messages';
+  raise notice 'PASS homepage: admin';
 end $$;
 
 reset role;

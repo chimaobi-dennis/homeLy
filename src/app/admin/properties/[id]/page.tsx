@@ -97,6 +97,10 @@ export default async function AdminPropertyEditorPage({
             <input name="listing_headline" maxLength={120} defaultValue={property.listing_headline ?? ""} className={input} placeholder="e.g. Bright 2-bedroom flat in Independence Layout" />
           </label>
           <label className="flex flex-col gap-1 md:col-span-2">
+            <span>Area / neighbourhood (shown publicly instead of the street address)</span>
+            <input name="area" maxLength={80} defaultValue={property.area ?? ""} className={input} placeholder="e.g. Independence Layout, GRA, Trans Ekulu" />
+          </label>
+          <label className="flex flex-col gap-1 md:col-span-2">
             <span>Description (required to publish)</span>
             <textarea name="description" rows={6} maxLength={5000} defaultValue={property.description ?? ""} className={input} />
           </label>

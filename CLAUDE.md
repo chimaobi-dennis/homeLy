@@ -118,8 +118,13 @@ Three kinds of **real auth accounts** (Supabase Auth, email + password):
   to `applied`); staff+admin select all; admin inserts/updates any.
   `status`, `assigned_ops_contact`, `kyc_rejection_reason`, `agreement_status`
   → admin/service role only (trigger).
+- `public_listings` / `public_listing_photos` (views): SELECT for anon and
+  authenticated; listed rows, safe columns only (see the homepage section).
+- `contact_messages`: staff+admin select; writes only through
+  `submit_contact_message()` (execute granted to anon/authenticated).
 - `properties`: same shape keyed on `landlord_id`; `status`, `landlord_id`,
-  `rejection_reason`, `listed_at` → admin/service only. The guard trigger is
+  `rejection_reason`, `listed_at` → admin/service only. `area` is listing
+  content (staff). The guard trigger is
   ROLE-SCOPED for non-privileged writers (Step 7 rewrite of the 0010 rule):
   landlords may change `maintenance_threshold_ngn` any time and the four core
   fields only while `submitted`, and never listing content; staff (bd/inspector,
@@ -201,9 +206,12 @@ Placeholder copy lives in `src/lib/content/enugu-ops.ts` (square brackets = repl
   (no city / apartment type / budget). Server action `joinWaitlist` inserts through
   the public-insert policy; a duplicate email (23505) is treated as success so the
   form never reveals whether an address is already on the list. Honeypot field.
-- `/waitlist/joined` — confirmation: no live listings yet, on the priority list,
-  notified by email/WhatsApp when the official queue opens. Copy must never say
-  "search", "browse", "apply for" or "queue for an apartment".
+- `/waitlist/joined` — confirmation: on the priority list, notified by
+  email/WhatsApp when the official queue opens. Copy in the WAITLIST FLOW must
+  never say "search", "browse", "apply for" or "queue for an apartment".
+  (Owner decision, homepage redesign 2026-09-22: the homepage itself now has a
+  search bar and says "search"; the ban is scoped to /waitlist and its
+  confirmation, plus "apply for" / "queue for an apartment" everywhere tenant-facing.)
 - There is deliberately NO "check my status" page: tenants have no account, and an
   email-keyed lookup would leak whether an address is registered.
 - `/admin/waitlist` — read-only list for admin AND staff (bd / inspector): name,
@@ -275,6 +283,38 @@ Placeholder copy lives in `src/lib/content/enugu-ops.ts` (square brackets = repl
   "apply for", "queue for an apartment").
 - Out of scope, still: applying to a unit, payments, maintenance tickets,
   changes to Stage 1 signup, automated Dojah calls. (Listings arrived in Step 7.)
+
+## Homepage redesign — tenant-first, public listings (2026-09-22)
+
+- `/` is now: hero (search pill → `/search`) · why choose us · about · available
+  apartments (6 newest listed) · landlord band → /landlord/apply · contact · footer.
+  Files: `src/app/page.tsx`, `src/app/home.css` (tokens + Mist #E8EDEB, Signal
+  #2FA37C; Gold = focus rings/rules only), `src/components/home/*`,
+  `src/lib/content/homepage.ts`. The persona-toggle homepage (be5839d) is gone;
+  the landlord trust content still lives at /landlord/apply.
+- The page reads ONLY public data through `createPublicClient()` (anon key, no
+  cookies) and is cached (`revalidate = 60`); the header is static (no session).
+- PUBLIC LISTINGS = a privacy-safe shape, never the table:
+  `public.public_listings` and `public.public_listing_photos` are
+  `security_barrier` views owned by postgres (so they bypass RLS on purpose),
+  filtered to `status = 'listed'`, projecting only id, headline, area, city,
+  bedrooms, bathrooms, size, furnishing, amenities, available_from, annual_rent,
+  listed_at (and photo paths). No address, landlord, status, reasons or
+  threshold — anon has no grant on `properties` or `property_photos`. Photos are
+  signed server-side with the service role (1 h); the bucket stays private.
+  `properties.area` (neighbourhood) is the public location; staff set it in the
+  listing editor. This reverses Step 7's "browse is verified-tenants-only" for
+  the PUBLIC surfaces only; `/tenant/browse` keeps its verified-tenant gate as
+  the signed-in experience (it still shows the street address).
+- `/search` — public results for the hero search (area / bedrooms / max rent via
+  GET). Zero results is a first-class state that offers the priority list.
+- Contact form → `contact_messages` via `submit_contact_message()` (SECURITY
+  DEFINER, rate-limited 5/hour per hashed IP and 3/day per WhatsApp number; the
+  only write path — no anon INSERT policy on purpose). Staff/admin select. No
+  email is sent. Channels come from `NEXT_PUBLIC_CONTACT_WHATSAPP` /
+  `NEXT_PUBLIC_CONTACT_EMAIL`; unset = not shown, nothing invented.
+- `next/image` is used for photos; `images.remotePatterns` is derived from
+  `NEXT_PUBLIC_SUPABASE_URL` in `next.config.ts`.
 
 ## Property listings (Step 7, built 2026-09-22)
 

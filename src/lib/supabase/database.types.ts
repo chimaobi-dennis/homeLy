@@ -9,6 +9,33 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      contact_messages: {
+        Row: {
+          created_at: string
+          id: string
+          ip_hash: string | null
+          message: string
+          name: string
+          whatsapp_number: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_hash?: string | null
+          message: string
+          name: string
+          whatsapp_number: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_hash?: string | null
+          message?: string
+          name?: string
+          whatsapp_number?: string
+        }
+        Relationships: []
+      }
       landlord_documents: {
         Row: {
           document_type: Database["public"]["Enums"]["landlord_document_type"]
@@ -56,6 +83,13 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "landlord_documents_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "public_listings"
             referencedColumns: ["id"]
           },
         ]
@@ -139,6 +173,7 @@ export type Database = {
         Row: {
           address: string
           amenities: string[]
+          area: string | null
           available_from: string | null
           bathrooms: number | null
           bedrooms: number
@@ -160,6 +195,7 @@ export type Database = {
         Insert: {
           address: string
           amenities?: string[]
+          area?: string | null
           available_from?: string | null
           bathrooms?: number | null
           bedrooms: number
@@ -181,6 +217,7 @@ export type Database = {
         Update: {
           address?: string
           amenities?: string[]
+          area?: string | null
           available_from?: string | null
           bathrooms?: number | null
           bedrooms?: number
@@ -243,6 +280,13 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_photos_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "public_listings"
             referencedColumns: ["id"]
           },
           {
@@ -467,7 +511,76 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_listing_photos: {
+        Row: {
+          caption: string | null
+          id: string | null
+          property_id: string | null
+          sort_order: number | null
+          storage_path: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_photos_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_photos_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "public_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_listings: {
+        Row: {
+          amenities: string[] | null
+          annual_rent: number | null
+          area: string | null
+          available_from: string | null
+          bathrooms: number | null
+          bedrooms: number | null
+          city: string | null
+          furnishing: Database["public"]["Enums"]["property_furnishing"] | null
+          id: string | null
+          listed_at: string | null
+          listing_headline: string | null
+          size_sqm: number | null
+        }
+        Insert: {
+          amenities?: string[] | null
+          annual_rent?: number | null
+          area?: string | null
+          available_from?: string | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          city?: string | null
+          furnishing?: Database["public"]["Enums"]["property_furnishing"] | null
+          id?: string | null
+          listed_at?: string | null
+          listing_headline?: string | null
+          size_sqm?: number | null
+        }
+        Update: {
+          amenities?: string[] | null
+          annual_rent?: number | null
+          area?: string | null
+          available_from?: string | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          city?: string | null
+          furnishing?: Database["public"]["Enums"]["property_furnishing"] | null
+          id?: string | null
+          listed_at?: string | null
+          listing_headline?: string | null
+          size_sqm?: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       current_role_tags: { Args: never; Returns: string[] }
@@ -477,6 +590,15 @@ export type Database = {
       is_privileged_writer: { Args: never; Returns: boolean }
       is_staff_or_admin: { Args: never; Returns: boolean }
       is_verified_tenant: { Args: never; Returns: boolean }
+      submit_contact_message: {
+        Args: {
+          p_ip_hash: string
+          p_message: string
+          p_name: string
+          p_whatsapp: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       conversion_invite_status: "pending" | "accepted" | "revoked" | "expired"

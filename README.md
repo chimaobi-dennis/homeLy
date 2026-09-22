@@ -31,6 +31,8 @@ Local Studio: http://127.0.0.1:54323 · Local mail catcher: http://127.0.0.1:543
 
 | Route                     | Status                                                     |
 |---------------------------|------------------------------------------------------------|
+| `/`                       | tenant-first homepage: search, why us, about, listed homes   |
+| `/search`                 | public results for the hero search (privacy-safe view)      |
 | `/landlord/apply`         | trust-first landing (fees, process, maintenance disclosure) |
 | `/landlord/apply/form`    | application wizard + document upload                        |
 | `/landlord/dashboard`     | landlord status view, resubmit paths                        |

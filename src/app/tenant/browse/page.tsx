@@ -19,7 +19,7 @@ export default async function TenantBrowsePage() {
   const supabase = await createClient();
   const { data: properties } = await supabase
     .from("properties")
-    .select("id, address, city, bedrooms, bathrooms, target_annual_rent, listing_headline, furnishing, available_from, listed_at")
+    .select("id, address, area, city, bedrooms, bathrooms, target_annual_rent, listing_headline, furnishing, available_from, listed_at")
     .eq("status", "listed")
     .order("listed_at", { ascending: false });
   const homes = properties ?? [];
@@ -79,7 +79,7 @@ export default async function TenantBrowsePage() {
                   <div className="p-4">
                     <h2 className="font-semibold">{h.listing_headline ?? h.address}</h2>
                     <p className="text-sm text-zinc-500">
-                      {h.city} · {h.bedrooms} bed{h.bathrooms != null ? ` · ${h.bathrooms} bath` : ""}
+                      {h.area ? `${h.area}, ` : ""}{h.city} · {h.bedrooms} bed{h.bathrooms != null ? ` · ${h.bathrooms} bath` : ""}
                     </p>
                     <p className="mt-2 text-sm">
                       <span className="font-medium">{formatNgn(h.target_annual_rent)}</span> per year

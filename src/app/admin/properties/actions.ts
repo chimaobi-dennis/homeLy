@@ -34,6 +34,8 @@ function revalidate(propertyId: string) {
   revalidatePath("/landlord/dashboard");
   revalidatePath("/tenant/browse");
   revalidatePath(`/tenant/browse/${propertyId}`);
+  revalidatePath("/");
+  revalidatePath("/search");
 }
 
 // ---------------------------------------------------------------------------
@@ -48,6 +50,7 @@ export async function updateListing(formData: FormData): Promise<void> {
     await assertStaffOrAdminAction();
 
     const listing_headline = optionalText(formData.get("listing_headline"), 120);
+    const area = optionalText(formData.get("area"), 80);
     const description = optionalText(formData.get("description"), 5000);
     const bathroomsRaw = String(formData.get("bathrooms") ?? "").trim();
     const bathrooms = bathroomsRaw === "" ? null : toInt(bathroomsRaw);
@@ -65,7 +68,7 @@ export async function updateListing(formData: FormData): Promise<void> {
     const supabase = await createClient(); // staff/admin session → RLS + guard trigger
     const { data, error: dbErr } = await supabase
       .from("properties")
-      .update({ listing_headline, description, bathrooms, size_sqm, furnishing, amenities, available_from })
+      .update({ listing_headline, area, description, bathrooms, size_sqm, furnishing, amenities, available_from })
       .eq("id", propertyId)
       .select("id")
       .maybeSingle();
