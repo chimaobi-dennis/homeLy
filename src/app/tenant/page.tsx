@@ -108,9 +108,14 @@ export default async function TenantStatusPage({ searchParams }: { searchParams:
           ) : null}
 
           {tenant.kyc_status === "verified" ? (
-            <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
-              There are still no live listings. We will be in touch, in queue order, as homes become available.
-            </p>
+            <div className="mt-4 flex flex-col gap-3">
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                Inspected homes appear under “Available homes” as HomeLy lists them. We also notify you, in queue order. Applications open in a later step.
+              </p>
+              <Link href="/tenant/browse" className="self-start rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800">
+                See available homes
+              </Link>
+            </div>
           ) : null}
         </section>
 

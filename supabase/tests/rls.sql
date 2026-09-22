@@ -20,7 +20,8 @@ insert into auth.users (instance_id,id,aud,role,email,encrypted_password,email_c
  ('00000000-0000-0000-0000-000000000000','10000000-0000-4000-8000-0000000000a4','authenticated','authenticated','t-landlord-b@test.local','x',now(),'{}','{"full_name":"T Landlord B"}',now(),now(),'','','','','','','',''),
  ('00000000-0000-0000-0000-000000000000','10000000-0000-4000-8000-0000000000a5','authenticated','authenticated','t-new@test.local','x',now(),'{}','{"full_name":"  "}',now(),now(),'','','','','','','',''),
  ('00000000-0000-0000-0000-000000000000','10000000-0000-4000-8000-0000000000a6','authenticated','authenticated','t-phone@test.local','x',now(),'{}','{"full_name":"T Phone","phone":"+2348000000006"}',now(),now(),'','','','','','','',''),
- ('00000000-0000-0000-0000-000000000000','10000000-0000-4000-8000-0000000000a7','authenticated','authenticated','t-tenant@test.local','x',now(),'{"role_tags":["tenant"]}','{"full_name":"T Tenant"}',now(),now(),'','','','','','','','');
+ ('00000000-0000-0000-0000-000000000000','10000000-0000-4000-8000-0000000000a7','authenticated','authenticated','t-tenant@test.local','x',now(),'{"role_tags":["tenant"]}','{"full_name":"T Tenant"}',now(),now(),'','','','','','','',''),
+ ('00000000-0000-0000-0000-000000000000','10000000-0000-4000-8000-0000000000a8','authenticated','authenticated','t-tenant-unverified@test.local','x',now(),'{"role_tags":["tenant"]}','{"full_name":"T Unverified"}',now(),now(),'','','','','','','','');
 
 do $$ begin
   assert (select role_tags from public.profiles where id='10000000-0000-4000-8000-0000000000a1') = '{admin}', 'trigger: admin tags from app_metadata';
@@ -53,6 +54,16 @@ insert into public.waitlist_entries (id, name, whatsapp_number, email) values
  ('40000000-0000-4000-8000-000000000001','W One','+2348012345678','w1@test.local'),
  ('40000000-0000-4000-8000-000000000002','W Two','+2348012345679','w2@test.local');
 insert into public.tenants (id, waitlist_entry_id, kyc_status) values ('10000000-0000-4000-8000-0000000000a7','40000000-0000-4000-8000-000000000001','pending');
+insert into public.tenants (id, kyc_status) values ('10000000-0000-4000-8000-0000000000a8','pending');
+-- Step 7 fixtures: listing content + one photo each for p1 and p2 (p1 is listed by the admin block below).
+update public.properties set description='Two-bedroom flat, first floor, tiled, borehole water.', listing_headline='Bright 2-bed in Independence Layout', amenities='{borehole_water,prepaid_meter}', bathrooms=2
+ where id='20000000-0000-4000-8000-000000000001';
+insert into public.property_photos (id, property_id, storage_path, sort_order) values
+ ('60000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001/a.jpg',0),
+ ('60000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000002/b.jpg',0);
+insert into storage.objects (bucket_id, name) values
+ ('property-photos','20000000-0000-4000-8000-000000000001/a.jpg'),
+ ('property-photos','20000000-0000-4000-8000-000000000002/b.jpg');
 insert into public.queue_conversion_invites (id, waitlist_entry_id) values ('50000000-0000-4000-8000-000000000001','40000000-0000-4000-8000-000000000002');
 
 do $$ begin
@@ -60,6 +71,7 @@ do $$ begin
   assert (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' and not c.relrowsecurity) = 0, 'every public table has RLS enabled';
   assert (select public from storage.buckets where id='landlord-documents') = false, 'landlord-documents bucket is private';
   assert (select file_size_limit from storage.buckets where id='landlord-documents') = 10485760, 'bucket size limit 10 MiB';
+  assert (select public from storage.buckets where id='property-photos') = false, 'property-photos bucket is private';
   raise notice 'PASS schema: token default + RLS enabled everywhere';
 end $$;
 
@@ -71,7 +83,7 @@ select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-0000000
 set local role authenticated;
 do $$ declare n int; ok boolean; begin
   assert public.is_admin(), 'admin: is_admin()';
-  assert (select count(*) from public.profiles where id::text like '10000000-%') = 7, 'admin: selects all profiles';
+  assert (select count(*) from public.profiles where id::text like '10000000-%') = 8, 'admin: selects all profiles';
   assert (select count(*) from public.landlords where id::text like '10000000-%') = 2, 'admin: selects all landlords';
   assert (select count(*) from public.properties where id::text like '20000000-%') = 3, 'admin: selects all properties';
   assert (select count(*) from public.staff_invites where id::text like '30000000-%') = 1, 'admin: selects staff_invites';
@@ -123,7 +135,9 @@ set local role authenticated;
 do $$ declare n int; ok boolean; begin
   assert public.is_staff_or_admin() and not public.is_admin(), 'staff: is_staff_or_admin, not admin';
   assert public.has_role('bd') and public.has_role('inspector'), 'staff: holds both tags';
-  assert (select count(*) from public.profiles where id::text like '10000000-%') = 1, 'staff: sees only own profile';
+  -- Step 7: staff read landlord-tagged profiles (names for the properties list): own + a3, a4, a5.
+  assert (select count(*) from public.profiles where id::text like '10000000-%') = 4, 'staff: sees own profile + landlord profiles only';
+  assert (select count(*) from public.profiles where id::text like '10000000-%' and not ('landlord' = any(role_tags)) and id <> '10000000-0000-4000-8000-0000000000a2') = 0, 'staff: no admin/staff/tenant profiles visible';
   assert (select count(*) from public.landlords where id::text like '10000000-%') = 2, 'staff: selects all landlords';
   assert (select count(*) from public.properties where id::text like '20000000-%') = 3, 'staff: selects all properties';
   assert (select count(*) from public.staff_invites) = 0, 'staff: cannot read staff_invites';
@@ -136,8 +150,10 @@ do $$ declare n int; ok boolean; begin
 
   update public.landlords set country_of_residence='Ghana' where id='10000000-0000-4000-8000-0000000000a3';
   get diagnostics n = row_count; assert n = 0, 'staff: cannot update landlords';
-  update public.properties set address='changed' where id='20000000-0000-4000-8000-000000000001';
-  get diagnostics n = row_count; assert n = 0, 'staff: cannot update properties';
+  ok := false;
+  begin update public.properties set address='changed' where id='20000000-0000-4000-8000-000000000001';
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'staff: cannot update core property fields (trigger, Step 7)';
 
   ok := false;
   begin insert into public.landlords (id, country_of_residence) values ('10000000-0000-4000-8000-0000000000a2','Nigeria');
@@ -509,7 +525,7 @@ reset role;
 select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-0000000000a2","role":"authenticated"}', true);
 set local role authenticated;
 do $$ declare n int; begin
-  assert (select count(*) from public.tenants where id::text like '10000000-%') = 1, 'staff: selects all tenants';
+  assert (select count(*) from public.tenants where id::text like '10000000-%') = 2, 'staff: selects all tenants';
   assert (select count(*) from public.tenant_documents where storage_path like '10000000-%') = 1, 'staff: selects all tenant documents';
   assert (select count(*) from storage.objects where bucket_id='tenant-documents' and name like '10000000-%') = 1, 'staff: reads tenant bucket objects';
   assert (select count(*) from public.queue_conversion_invites) = 0, 'staff: cannot read conversion invites';
@@ -547,6 +563,164 @@ do $$ declare ok boolean; begin
   assert ok, 'anon: cannot select tenant_documents';
   assert (select count(*) from storage.objects where bucket_id='tenant-documents') = 0, 'anon: sees no tenant objects';
   raise notice 'PASS step5 anon';
+end $$;
+
+-- ===========================================================================
+-- STEP 7: listing content, property_photos, property-photos bucket
+-- ===========================================================================
+reset role;
+select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-0000000000a2","role":"authenticated"}', true);
+set local role authenticated;
+do $$ declare n int; ok boolean; begin
+  update public.properties set description='Staff wrote this.', listing_headline='Bright 2-bed', amenities='{borehole_water,parking}', furnishing='semi_furnished', bathrooms=2, size_sqm=85, available_from=current_date
+   where id='20000000-0000-4000-8000-000000000001';
+  get diagnostics n = row_count; assert n = 1, 'staff: edits listing content on a listed property';
+  update public.properties set description='Staff wrote this too.' where id='20000000-0000-4000-8000-000000000002';
+  get diagnostics n = row_count; assert n = 1, 'staff: edits listing content on a submitted property';
+  ok := false;
+  begin update public.properties set maintenance_threshold_ngn=1 where id='20000000-0000-4000-8000-000000000001';
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'staff: cannot change the maintenance limit';
+  ok := false;
+  begin update public.properties set listed_at=now() where id='20000000-0000-4000-8000-000000000002';
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'staff: cannot change listed_at';
+  ok := false;
+  begin update public.properties set status='listed' where id='20000000-0000-4000-8000-000000000002';
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'staff: cannot publish (status is admin/service only)';
+  ok := false;
+  begin update public.properties set amenities='{jacuzzi}' where id='20000000-0000-4000-8000-000000000001';
+  exception when check_violation then ok := true; end;
+  assert ok, 'amenities outside the fixed list are rejected';
+  insert into public.property_photos (property_id, storage_path, sort_order, uploaded_by)
+  values ('20000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001/c.jpg',1,'10000000-0000-4000-8000-0000000000a2');
+  update public.property_photos set caption='Living room' where storage_path='20000000-0000-4000-8000-000000000001/c.jpg';
+  get diagnostics n = row_count; assert n = 1, 'staff: captions a photo';
+  assert (select count(*) from public.property_photos where property_id::text like '20000000-%') = 3, 'staff: sees all photos';
+  insert into storage.objects (bucket_id, name) values ('property-photos','20000000-0000-4000-8000-000000000001/c.jpg');
+  -- (storage.objects DELETE cannot be exercised by direct SQL: storage.protect_delete()
+  --  only allows the Storage API. The staff delete policy is covered by the admin
+  --  "Delete photo" button, which calls storage.remove() through the API.)
+  delete from public.property_photos where storage_path='20000000-0000-4000-8000-000000000001/c.jpg';
+  get diagnostics n = row_count; assert n = 1, 'staff: deletes a photo row';
+  ok := false;
+  begin insert into public.property_photos (property_id, storage_path) values ('20000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000002/wrong.jpg');
+  exception when check_violation then ok := true; end;
+  assert ok, 'property_photos: path must be under the property folder';
+  raise notice 'PASS step7 staff: listing content + photos, nothing else';
+end $$;
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-0000000000a3","role":"authenticated"}', true);
+set local role authenticated;
+do $$ declare n int; ok boolean; begin
+  assert (select count(*) from public.property_photos where property_id='20000000-0000-4000-8000-000000000001') = 1, 'landlord: reads own property photos';
+  assert (select count(*) from public.property_photos where property_id='20000000-0000-4000-8000-000000000002') = 0, 'landlord: cannot read other landlord photos';
+  assert (select description from public.properties where id='20000000-0000-4000-8000-000000000001') = 'Staff wrote this.', 'landlord: reads own listing content';
+  ok := false;
+  begin update public.properties set description='mine' where id='20000000-0000-4000-8000-000000000001';
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'landlord: cannot write listing content (listed property)';
+  ok := false;
+  begin update public.properties set listing_headline='mine' where address like '3 New St%';
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'landlord: cannot write listing content (submitted property)';
+  ok := false;
+  begin insert into public.properties (landlord_id, address, bedrooms, target_annual_rent, description) values ('10000000-0000-4000-8000-0000000000a3','9 Listing St',1,700000,'my copy');
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'landlord: cannot insert a property with listing content';
+  ok := false;
+  begin insert into public.property_photos (property_id, storage_path) values ('20000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001/l.jpg');
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'landlord: cannot insert photos';
+  update public.property_photos set caption='x' where property_id='20000000-0000-4000-8000-000000000001';
+  get diagnostics n = row_count; assert n = 0, 'landlord: cannot update photos';
+  delete from public.property_photos where property_id='20000000-0000-4000-8000-000000000001';
+  get diagnostics n = row_count; assert n = 0, 'landlord: cannot delete photos';
+  assert (select count(*) from storage.objects where bucket_id='property-photos' and name like '20000000-0000-4000-8000-000000000001/%') = 2, 'landlord: reads own property photo objects (fixture + staff upload)';
+  assert (select count(*) from storage.objects where bucket_id='property-photos' and name like '20000000-0000-4000-8000-000000000002/%') = 0, 'landlord: cannot read other property photo objects';
+  ok := false;
+  begin insert into storage.objects (bucket_id, name) values ('property-photos','20000000-0000-4000-8000-000000000001/l.jpg');
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'landlord: cannot upload photos';
+  raise notice 'PASS step7 landlord: reads own listing, writes nothing';
+end $$;
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-0000000000a7","role":"authenticated"}', true);
+set local role authenticated;
+do $$ declare n int; ok boolean; begin
+  assert public.is_verified_tenant(), 'verified tenant: helper';
+  assert (select count(*) from public.properties where id::text like '20000000-%') = 1, 'verified tenant: sees only listed properties';
+  assert (select status from public.properties where id::text like '20000000-%') = 'listed', 'verified tenant: the visible one is listed';
+  assert (select count(*) from public.property_photos where property_id='20000000-0000-4000-8000-000000000001') = 1, 'verified tenant: reads listed property photos';
+  assert (select count(*) from public.property_photos where property_id='20000000-0000-4000-8000-000000000002') = 0, 'verified tenant: cannot read unlisted property photos';
+  assert (select count(*) from storage.objects where bucket_id='property-photos' and name like '20000000-0000-4000-8000-000000000001/%') = 2, 'verified tenant: reads listed photo objects';
+  assert (select count(*) from storage.objects where bucket_id='property-photos' and name like '20000000-0000-4000-8000-000000000002/%') = 0, 'verified tenant: cannot read unlisted photo objects';
+  update public.properties set description='x' where id='20000000-0000-4000-8000-000000000001';
+  get diagnostics n = row_count; assert n = 0, 'verified tenant: cannot update properties';
+  ok := false;
+  begin insert into public.property_photos (property_id, storage_path) values ('20000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001/t.jpg');
+  exception when insufficient_privilege then ok := true; end;
+  assert ok, 'verified tenant: cannot insert photos';
+  raise notice 'PASS step7 verified tenant: listed only, read only';
+end $$;
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-0000000000a8","role":"authenticated"}', true);
+set local role authenticated;
+do $$ begin
+  assert not public.is_verified_tenant(), 'unverified tenant: helper';
+  assert (select count(*) from public.properties) = 0, 'unverified tenant: sees no properties';
+  assert (select count(*) from public.property_photos) = 0, 'unverified tenant: sees no photos';
+  assert (select count(*) from storage.objects where bucket_id='property-photos') = 0, 'unverified tenant: sees no photo objects';
+  raise notice 'PASS step7 unverified tenant sees nothing';
+end $$;
+
+reset role;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+set local role anon;
+do $$ declare ok boolean; begin
+  ok := false; begin perform count(*) from public.property_photos; exception when insufficient_privilege then ok := true; end;
+  assert ok, 'anon: cannot select property_photos';
+  assert (select count(*) from storage.objects where bucket_id='property-photos') = 0, 'anon: sees no photo objects';
+  raise notice 'PASS step7 anon';
+end $$;
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-0000000000a1","role":"authenticated"}', true);
+set local role authenticated;
+do $$ declare n int; ok boolean; begin
+  -- p2 has a photo and rent but (after staff) a description; strip it to prove the rule.
+  update public.properties set description=null where id='20000000-0000-4000-8000-000000000002';
+  ok := false;
+  begin update public.properties set status='listed' where id='20000000-0000-4000-8000-000000000002';
+  exception when check_violation then ok := true; end;
+  assert ok, 'admin: cannot publish without a description';
+  update public.properties set description='Admin description' where id='20000000-0000-4000-8000-000000000002';
+  delete from public.property_photos where property_id='20000000-0000-4000-8000-000000000002';
+  ok := false;
+  begin update public.properties set status='listed' where id='20000000-0000-4000-8000-000000000002';
+  exception when check_violation then ok := true; end;
+  assert ok, 'admin: cannot publish without a photo';
+  insert into public.property_photos (property_id, storage_path) values ('20000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000002/b.jpg');
+  update public.properties set status='listed' where id='20000000-0000-4000-8000-000000000002';
+  get diagnostics n = row_count; assert n = 1, 'admin: publishes once requirements are met';
+  assert (select listed_at from public.properties where id='20000000-0000-4000-8000-000000000002') is not null, 'listed_at set on publish';
+  update public.properties set status='under_inspection' where id='20000000-0000-4000-8000-000000000002';
+  assert (select listed_at from public.properties where id='20000000-0000-4000-8000-000000000002') is null, 'listed_at cleared on unpublish';
+  assert (select count(*) from public.profiles where 'landlord' = any(role_tags) and id::text like '10000000-%') >= 2, 'admin: still reads landlord profiles';
+  raise notice 'PASS step7 admin: publish rules + listed_at';
+end $$;
+
+reset role;
+select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-0000000000a2","role":"authenticated"}', true);
+set local role authenticated;
+do $$ begin
+  assert (select count(*) from public.profiles where id::text like '10000000-%' and 'landlord' = any(role_tags)) >= 2, 'staff: reads landlord profiles (names for the properties list)';
+  assert (select count(*) from public.profiles where id::text like '10000000-%' and 'admin' = any(role_tags)) = 0, 'staff: still cannot read admin profiles';
+  raise notice 'PASS step7 staff: landlord-profile read is narrow';
 end $$;
 
 reset role;

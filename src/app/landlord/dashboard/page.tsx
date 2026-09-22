@@ -15,6 +15,7 @@ import {
 } from "@/lib/status-labels";
 import { createClient } from "@/lib/supabase/server";
 import { MaintenanceThresholdForm, PropertyResubmitForm, SubmitForReviewButton } from "./client-parts";
+import { ListingPreview } from "./listing-preview";
 
 export const metadata: Metadata = { title: "My application · HomeLy" };
 
@@ -237,6 +238,7 @@ export default async function LandlordDashboardPage({
               <div className="mt-3">
                 <MaintenanceThresholdForm propertyId={p.id} current={p.maintenance_threshold_ngn} />
               </div>
+              <ListingPreview property={p} />
               {p.status === "rejected" ? (
                 <div className="mt-3 flex flex-col gap-3 rounded-md border border-red-200 bg-red-50 p-4 text-sm dark:border-red-900 dark:bg-red-950/30">
                   <div>

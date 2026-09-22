@@ -68,6 +68,14 @@ export async function assertAdminAction(): Promise<SessionProfile> {
   return profile;
 }
 
+/** For server actions that staff (bd / inspector) may run as well as admin — e.g. listing content. */
+export async function assertStaffOrAdminAction(): Promise<SessionProfile> {
+  const profile = await getSessionProfile();
+  if (!profile) throw new Error("Not signed in.");
+  if (!isStaffOrAdmin(profile.roleTags)) throw new Error("Not authorised: staff or admin role required.");
+  return profile;
+}
+
 /** For server actions on the landlord side. */
 export async function assertLandlordAction(): Promise<SessionProfile> {
   const profile = await getSessionProfile();

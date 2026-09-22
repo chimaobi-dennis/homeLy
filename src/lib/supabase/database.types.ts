@@ -138,39 +138,63 @@ export type Database = {
       properties: {
         Row: {
           address: string
+          amenities: string[]
+          available_from: string | null
+          bathrooms: number | null
           bedrooms: number
           city: string
           created_at: string
+          description: string | null
+          furnishing: Database["public"]["Enums"]["property_furnishing"] | null
           id: string
           landlord_id: string
+          listed_at: string | null
+          listing_headline: string | null
           maintenance_threshold_ngn: number
           rejection_reason: string | null
+          size_sqm: number | null
           status: Database["public"]["Enums"]["property_status"]
           target_annual_rent: number
           updated_at: string
         }
         Insert: {
           address: string
+          amenities?: string[]
+          available_from?: string | null
+          bathrooms?: number | null
           bedrooms: number
           city?: string
           created_at?: string
+          description?: string | null
+          furnishing?: Database["public"]["Enums"]["property_furnishing"] | null
           id?: string
           landlord_id: string
+          listed_at?: string | null
+          listing_headline?: string | null
           maintenance_threshold_ngn?: number
           rejection_reason?: string | null
+          size_sqm?: number | null
           status?: Database["public"]["Enums"]["property_status"]
           target_annual_rent: number
           updated_at?: string
         }
         Update: {
           address?: string
+          amenities?: string[]
+          available_from?: string | null
+          bathrooms?: number | null
           bedrooms?: number
           city?: string
           created_at?: string
+          description?: string | null
+          furnishing?: Database["public"]["Enums"]["property_furnishing"] | null
           id?: string
           landlord_id?: string
+          listed_at?: string | null
+          listing_headline?: string | null
           maintenance_threshold_ngn?: number
           rejection_reason?: string | null
+          size_sqm?: number | null
           status?: Database["public"]["Enums"]["property_status"]
           target_annual_rent?: number
           updated_at?: string
@@ -181,6 +205,51 @@ export type Database = {
             columns: ["landlord_id"]
             isOneToOne: false
             referencedRelation: "landlords"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          property_id: string
+          sort_order: number
+          storage_path: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          property_id: string
+          sort_order?: number
+          storage_path: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          property_id?: string
+          sort_order?: number
+          storage_path?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_photos_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_photos_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -407,6 +476,7 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_privileged_writer: { Args: never; Returns: boolean }
       is_staff_or_admin: { Args: never; Returns: boolean }
+      is_verified_tenant: { Args: never; Returns: boolean }
     }
     Enums: {
       conversion_invite_status: "pending" | "accepted" | "revoked" | "expired"
@@ -417,6 +487,7 @@ export type Database = {
         | "kyc_pending"
         | "kyc_verified"
         | "kyc_rejected"
+      property_furnishing: "unfurnished" | "semi_furnished" | "furnished"
       property_status: "submitted" | "under_inspection" | "listed" | "rejected"
       staff_invite_status: "pending" | "accepted" | "revoked" | "expired"
       tenant_document_type: "id_document"
@@ -562,6 +633,7 @@ export const Constants = {
         "kyc_verified",
         "kyc_rejected",
       ],
+      property_furnishing: ["unfurnished", "semi_furnished", "furnished"],
       property_status: ["submitted", "under_inspection", "listed", "rejected"],
       staff_invite_status: ["pending", "accepted", "revoked", "expired"],
       tenant_document_type: ["id_document"],

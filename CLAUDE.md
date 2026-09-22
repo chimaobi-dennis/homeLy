@@ -80,7 +80,15 @@ Three kinds of **real auth accounts** (Supabase Auth, email + password):
   kyc_rejection_reason, agreement_status (not_sent | pending_signature | signed)
 - `properties` — landlord_id → landlords, address, city (default Enugu), bedrooms,
   target_annual_rent, maintenance_threshold_ngn (default 150000), status
-  (submitted | under_inspection | listed | rejected), rejection_reason
+  (submitted | under_inspection | listed | rejected), rejection_reason;
+  listing content (Step 7): listing_headline, description, bathrooms, size_sqm,
+  furnishing (unfurnished | semi_furnished | furnished), amenities text[]
+  (fixed list, `properties_amenities_allowed` = `AMENITIES` in `src/lib/listings.ts`),
+  available_from, listed_at (trigger-maintained: set on → listed, cleared otherwise)
+- `property_photos` — property_id → properties, storage_path (unique, under
+  `<property_id>/`), caption, sort_order (explicit ordering), uploaded_by → profiles
+- Storage bucket `property-photos` (PRIVATE, 8 MiB, jpeg/png/webp), key layout
+  `<property uuid>/<uuid>-<filename>`. Signed URLs only.
 - `landlord_documents` — landlord_id → landlords, property_id → properties (nullable),
   document_type (id_document | proof_of_ownership), storage_path (unique, must be under
   `<landlord_id>/`), original_filename, mime_type, size_bytes, uploaded_at
@@ -111,9 +119,19 @@ Three kinds of **real auth accounts** (Supabase Auth, email + password):
   `status`, `assigned_ops_contact`, `kyc_rejection_reason`, `agreement_status`
   → admin/service role only (trigger).
 - `properties`: same shape keyed on `landlord_id`; `status`, `landlord_id`,
-  `rejection_reason` → admin/service only. Once status ≠ `submitted`, the guard
-  trigger also locks `address`, `city`, `bedrooms`, `target_annual_rent` for
-  non-privileged writers (Step 3 A2); `maintenance_threshold_ngn` stays editable.
+  `rejection_reason`, `listed_at` → admin/service only. The guard trigger is
+  ROLE-SCOPED for non-privileged writers (Step 7 rewrite of the 0010 rule):
+  landlords may change `maintenance_threshold_ngn` any time and the four core
+  fields only while `submitted`, and never listing content; staff (bd/inspector,
+  new "staff updates any row" policy) may change ONLY listing content, at any
+  status. Verified tenants select `listed` rows only. A separate trigger refuses
+  status → `listed` without description + rent + ≥1 photo, for every writer.
+- `property_photos`: staff+admin select/insert/update/delete; landlord selects own
+  property's rows; verified tenants select rows of `listed` properties.
+  `storage.objects` (bucket `property-photos`): staff+admin upload/delete/read;
+  landlord-owner reads own property folders; verified tenants read listed folders.
+- `profiles`: staff may additionally select landlord-tagged profiles (names for
+  the properties list) — not admin/staff/tenant profiles.
 - `landlord_documents`: landlord selects/inserts own rows; staff+admin select all;
   no client update/delete. Trigger: `property_id` must belong to the same landlord.
 - `storage.objects` (bucket `landlord-documents`): landlord inserts into and reads
@@ -255,8 +273,35 @@ Placeholder copy lives in `src/lib/content/enugu-ops.ts` (square brackets = repl
   `src/lib/notifications.ts` — same stub core (`notifyByEmail`), no new pattern.
 - Tenant-facing copy follows the waitlist banned-phrase rule ("search", "browse",
   "apply for", "queue for an apartment").
-- Out of scope, still: listings, applying to a unit, payments, maintenance tickets,
-  changes to Stage 1 signup, automated Dojah calls.
+- Out of scope, still: applying to a unit, payments, maintenance tickets,
+  changes to Stage 1 signup, automated Dojah calls. (Listings arrived in Step 7.)
+
+## Property listings (Step 7, built 2026-09-22)
+
+- DECISION: listing content and photos are authored by HomeLy staff/admin, never
+  by landlords. Landlords see a read-only "Your listing, as written by HomeLy"
+  panel on /landlord/dashboard.
+- `/admin/properties` (staff + admin): status filter, landlord/city columns.
+  `/admin/properties/[id]`: listing form, multi-photo upload (browser → bucket →
+  `recordPropertyPhoto`), reorder (↑/↓), caption, delete (Storage API remove +
+  row). Publish / Unpublish (ADMIN ONLY, `publishProperty` / `unpublishProperty`,
+  service role): under_inspection ↔ listed; refuses without description, rent
+  and ≥1 photo (also DB-enforced). A submitted/rejected property is first moved
+  to under_inspection on the landlord review page.
+- Tenant browse is GATED, not public (§15 keeps the waitlist as the launch gate):
+  `/tenant/browse` and `/tenant/browse/[id]` require the `tenant` tag AND
+  `tenants.kyc_status = 'verified'` (`requireVerifiedTenant` in
+  `src/app/tenant/gate.tsx`); anyone else gets the "finish your ID check" surface.
+  Only `listed` properties, newest `listed_at` first. Detail shows fees computed
+  from `src/lib/fees.ts` (agency + legal one-time on top of rent; management fee
+  is landlord-side) and states plainly that applications open in a later step.
+  No public browse route; /waitlist and the homepage are unchanged.
+- Photos use plain `<img>` with 10-minute signed URLs, not `next/image`: signed
+  URLs are unique per render and expire, which defeats the optimizer's cache and
+  would need a `remotePatterns` entry per environment.
+- Trigger firing order on `properties` is by NAME and is load-bearing:
+  `properties_guard_protected_columns` (42501) → `properties_publish_requirements`
+  (23514) → `properties_set_listed_at` → `properties_set_updated_at`.
 
 ## Integrations — NOT built yet
 

@@ -40,6 +40,8 @@ Local Studio: http://127.0.0.1:54323 · Local mail catcher: http://127.0.0.1:543
 | `/admin/tenants`          | admin-only tenant KYC review (verify / reject)              |
 | `/waitlist/convert/[token]` | public: accept a conversion invite → tenant account        |
 | `/tenant`                 | signed-in tenant status, ID upload, resubmit                |
+| `/tenant/browse`, `/tenant/browse/[id]` | verified tenants only: listed homes + detail   |
+| `/admin/properties`, `/admin/properties/[id]` | staff+admin listing editor; admin publishes |
 | `/admin/staff`            | admin-only: invite staff, revoke invites, deactivate staff  |
 | `/waitlist`               | public Stage 1 priority-list form (no account)              |
 | `/staff/invite/[token]`   | public invite acceptance (set password, signs in)           |

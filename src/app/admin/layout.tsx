@@ -34,6 +34,9 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
             <Link href="/admin/waitlist" className="underline underline-offset-4">
               Waitlist
             </Link>
+            <Link href="/admin/properties" className="underline underline-offset-4">
+              Properties
+            </Link>
           </nav>
           <div className="flex items-center gap-4">
             <span className="text-zinc-500">{viewer.email}</span>
