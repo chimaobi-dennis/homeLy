@@ -85,3 +85,25 @@ export function publishBlockers(p: { description: string | null; target_annual_r
   if (photoCount < 1) missing.push("at least one photo");
   return missing;
 }
+
+/* ---------- Public search vocabulary (hero filter box + /search sidebar) ---------- */
+
+/** Range-slider bounds. A value at the bound means "no limit", so homes outside the
+ *  bounds are never hidden by an untouched slider. */
+export const RENT_RANGE = { min: 100_000, max: 10_000_000, step: 50_000 } as const;
+export const SIZE_RANGE = { min: 10, max: 500, step: 5 } as const;
+
+export const ROOM_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
+  { value: "1", label: "1" },
+  { value: "2", label: "2" },
+  { value: "3", label: "3" },
+  { value: "4", label: "4+" },
+];
+
+export const SORT_OPTIONS = [
+  { value: "newest", label: "Sort by newest" },
+  { value: "oldest", label: "Sort by oldest" },
+  { value: "rent_desc", label: "Rent (high to low)" },
+  { value: "rent_asc", label: "Rent (low to high)" },
+] as const;
+export type ListingSort = (typeof SORT_OPTIONS)[number]["value"];

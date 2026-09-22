@@ -1,35 +1,60 @@
 /**
- * Homepage copy (tenant-first redesign). Facts about the team come from the
- * owner's brief; there are deliberately NO names, headshots, counts or dates
- * beyond what was supplied. Fee figures are read from src/lib/fees.ts at render.
+ * Homepage copy. Facts about the team come from the owner's brief; there are
+ * deliberately NO names, headshots, counts or dates beyond what was supplied.
+ * Layout follows the owner's chosen reference (Sheltos "slider-filter-search"
+ * hero + "corporate" services section) — see the decision log in CLAUDE.md.
+ * Fee figures are read from src/lib/fees.ts at render.
  */
 
-export const HERO = {
-  h1: "A home in Enugu, without the agent runaround.",
-  sub: "Inspected apartments, fees published before you commit, and a queue that rewards waiting — not who you know.",
-  micro: "Every home is inspected in person before it goes up.",
-  notReady: "Not ready to search? Join the priority list.",
-} as const;
-
-export const WHY_CHOOSE_US: ReadonlyArray<{ title: string; body: string }> = [
+/** Text slides in the hero (the background photo stays; the copy slides, like the reference). */
+export const HERO_SLIDES: ReadonlyArray<{ eyebrow: string; title: string; cta: { label: string; href: string } }> = [
   {
-    title: "Inspected before it's listed",
-    body: "A person from our Enugu team stands inside every home and photographs every room before it goes up. If it hasn't been inspected, it isn't on HomeLy.",
+    eyebrow: "Looking for a home in Enugu?",
+    title: "Inspected homes, fees in writing, no agent runaround.",
+    cta: { label: "Join the priority list", href: "/waitlist" },
   },
   {
-    title: "Fees in writing, before you commit",
-    // The fee sentence is composed at render time from src/lib/fees.ts.
-    body: "Fixed, published fees on every listing, so you know the full cost before you ask to view. Nothing is added at the door.",
-  },
-  {
-    title: "A queue, not connections",
-    body: "Your place is based on how long you've been on the priority list. Joining earlier means you hear earlier. Nobody skips the line.",
-  },
-  {
-    title: "Rent collection and repairs, handled",
-    body: "HomeLy collects rent and manages repairs on the landlord's behalf, so you deal with one accountable team rather than a chain of middlemen.",
+    eyebrow: "Own property in Enugu but live somewhere else?",
+    title: "We verify, inspect, list and manage it for you.",
+    cta: { label: "For landlords", href: "/landlord/apply" },
   },
 ];
+
+export const LOOKING_FOR = {
+  heading: "What are you looking for?",
+  items: [
+    { label: "Rent a home", href: "/search", icon: "home" },
+    { label: "Priority list", href: "/waitlist", icon: "list" },
+    { label: "Manage my property", href: "/landlord/apply", icon: "key" },
+  ] as ReadonlyArray<{ label: string; href: string; icon: "home" | "list" | "key" }>,
+} as const;
+
+export const SERVICES = {
+  bold: "Provided",
+  light: "Services",
+  intro: "Every home on HomeLy is inspected in person, priced in writing and managed by one accountable team.",
+  items: [
+    {
+      icon: "inspect",
+      title: "Inspected before it's listed",
+      body: "A person from our Enugu team stands inside every home and photographs every room before it goes up. If it hasn't been inspected, it isn't on HomeLy.",
+      cta: { label: "View homes", href: "/search" },
+    },
+    {
+      icon: "fees",
+      title: "Fees in writing, before you commit",
+      // The fee sentence is composed at render time from src/lib/fees.ts.
+      body: "Fixed, published fees on every listing, so you know the full cost before you ask to view. Nothing is added at the door.",
+      cta: { label: "See the fee sheet", href: "/landlord/apply" },
+    },
+    {
+      icon: "repairs",
+      title: "Rent collection and repairs, handled",
+      body: "HomeLy collects rent and manages repairs on the landlord's behalf, so you deal with one accountable team rather than a chain of middlemen.",
+      cta: { label: "For landlords", href: "/landlord/apply" },
+    },
+  ] as ReadonlyArray<{ icon: "inspect" | "fees" | "repairs"; title: string; body: string; cta: { label: string; href: string } }>,
+} as const;
 
 export const ABOUT = {
   anchor: {

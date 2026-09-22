@@ -1,24 +1,52 @@
 import Link from "next/link";
+import { Icon } from "./icons";
 
-/** Static header for the public homepage/search pages (no session read, so the page can be cached). */
+const LINKS = [
+  { href: "/", label: "Home" },
+  { href: "/search", label: "Available homes" },
+  { href: "/landlord/apply", label: "For landlords" },
+  { href: "/#about", label: "About" },
+  { href: "/#contact", label: "Contact" },
+];
+
+/**
+ * Transparent header laid over the hero / page banner (reference: Sheltos header).
+ * No session read, so the pages stay cacheable. Under 992px the menu folds into a
+ * <details> hamburger — no JavaScript needed.
+ */
 export function SiteNav() {
   return (
-    <header className="home-nav border-b border-[var(--rule)]">
-      <div className="wrap flex min-h-14 items-center justify-between gap-4 py-2 text-sm">
-        <Link href="/" className="display text-2xl leading-none text-[var(--ink)]">
+    <header className="home-nav">
+      <div className="wrap home-nav__row">
+        <Link href="/" className="home-nav__brand">
           HomeLy
         </Link>
-        <nav aria-label="Primary" className="flex items-center gap-5">
-          <Link href="/search" className="hidden min-h-11 items-center underline-offset-4 hover:underline sm:inline-flex">
-            Available homes
-          </Link>
-          <Link href="/landlord/apply" className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">
-            For landlords
-          </Link>
-          <Link href="/login" className="inline-flex min-h-11 items-center text-[var(--mute)] underline-offset-4 hover:underline">
-            Sign in
-          </Link>
+        <nav aria-label="Primary" className="home-nav__menu">
+          {LINKS.map((l) => (
+            <Link key={l.href} href={l.href}>
+              {l.label}
+            </Link>
+          ))}
         </nav>
+        <div className="home-nav__right">
+          <Link href="/login" className="home-nav__signin">
+            <Icon name="user" size={18} />
+            <span>Sign in</span>
+          </Link>
+          <details className="home-nav__mobile">
+            <summary aria-label="Menu">
+              <Icon name="menu" size={22} />
+            </summary>
+            <nav aria-label="Primary (mobile)">
+              {LINKS.map((l) => (
+                <Link key={l.href} href={l.href}>
+                  {l.label}
+                </Link>
+              ))}
+              <Link href="/login">Sign in</Link>
+            </nav>
+          </details>
+        </div>
       </div>
     </header>
   );

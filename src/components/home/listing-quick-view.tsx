@@ -82,6 +82,7 @@ export function ListingQuickView({
               {title}
             </h2>
             <p className="mt-1 text-sm text-[var(--mute)]">{listing.area ? `${listing.area} · Enugu` : (listing.city ?? "Enugu")}</p>
+            {listing.description ? <p className="home-quick__desc font-roboto">{listing.description}</p> : null}
 
             <dl className="home-quick__facts">
               <div>

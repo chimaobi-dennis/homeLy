@@ -545,6 +545,7 @@ export type Database = {
           bathrooms: number | null
           bedrooms: number | null
           city: string | null
+          description: string | null
           furnishing: Database["public"]["Enums"]["property_furnishing"] | null
           id: string | null
           listed_at: string | null
@@ -559,6 +560,7 @@ export type Database = {
           bathrooms?: number | null
           bedrooms?: number | null
           city?: string | null
+          description?: string | null
           furnishing?: Database["public"]["Enums"]["property_furnishing"] | null
           id?: string | null
           listed_at?: string | null
@@ -573,6 +575,7 @@ export type Database = {
           bathrooms?: number | null
           bedrooms?: number | null
           city?: string | null
+          description?: string | null
           furnishing?: Database["public"]["Enums"]["property_furnishing"] | null
           id?: string | null
           listed_at?: string | null

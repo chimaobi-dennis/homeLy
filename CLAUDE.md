@@ -56,7 +56,30 @@ Vercel deployment, and the current tenant-first homepage (its §13/§14/§17 and
   everywhere (nav, buttons, chips, band, footer, focus); white surfaces; ice
   wash. Cobalt #1849D6 tried and dropped.
 - 2026-09-22 — Hero: natural-colour aerial photo under a WHITE veil + white
-  glass panel. Navy duotone tried and dropped.
+  glass panel. Navy duotone tried and dropped. (Superseded the same day, below.)
+- 2026-09-22 — LAYOUT REFERENCE (owner: "found the perfect template, use it
+  verbatim"): PixelStrap **Sheltos** demo. Homepage hero = `theme/slider-filter-search`
+  (full-viewport photo + 50% dark overlay, text slider with round arrows,
+  "What are you looking for?" glass tiles, dark glass filter box on the right);
+  second section = the "Provided Services" block from `theme/corporate`
+  (squiggle title, three white shadowed cards with line icon + h3 + Roboto
+  paragraph + flat button); results = `listing/grid-view/2-grid/left-sidebar`
+  (500px banner + breadcrumb, white sidebar: Advance search / Filter / Areas /
+  Contact info / Recently added, results header with "Showing 1-6 of N", sort,
+  2/3/list view toggles, `.property-box`-style cards, « Previous 1 2 3 Next »).
+  We rebuild the LAYOUT in our own code with our own copy/photos — the
+  template's code, images and text are the vendor's (paid ThemeForest theme)
+  and are never copied. If the owner buys a licence, its assets may be used.
+  Typography follows the reference: Montserrat (headings/UI) + Roboto
+  (paragraphs). Colour still follows the one-navy decision. Shadowed cards are
+  now allowed (the earlier "no identical shadowed cards" rule belonged to the
+  previous editorial brief).
+- 2026-09-22 — Search results live on /search (the reference listing page), so
+  the on-page dropdown + `/api/listings` route from earlier today were removed.
+  Filters everywhere: keyword, area, furnishing, bed, bath, rent range, size
+  range (dual native range inputs); sort + view + page params on /search.
+- 2026-09-22 — Migration 0018 appends `description` to `public_listings` (staff-
+  written public copy; cards show it). NOT on cloud until the owner runs it.
 
 ## Tech stack
 
@@ -337,74 +360,42 @@ Placeholder copy lives in `src/lib/content/enugu-ops.ts` (square brackets = repl
 - Out of scope, still: applying to a unit, payments, maintenance tickets,
   changes to Stage 1 signup, automated Dojah calls. (Listings arrived in Step 7.)
 
-## Homepage redesign — tenant-first, public listings (2026-09-22)
+## Public pages — homepage + /search (rebuilt 2026-09-22 on the Sheltos reference)
 
-- `/` is now: hero (search pill → `/search`) · why choose us · about · available
-  apartments (6 newest listed) · landlord band → /landlord/apply · contact · footer.
-  Files: `src/app/page.tsx`, `src/app/home.css`, `src/components/home/*`,
-  `src/lib/content/homepage.ts`. The persona-toggle homepage (be5839d) is gone;
-  the landlord trust content still lives at /landlord/apply.
-- Hero background = owner's aerial photo of Enugu at `public/hero/enugu-aerial.jpg`
-  (1079×922, ~256 KB; rendered with `next/image` `fill` + `priority`, it is the
-  LCP element). To change it, replace the file (same name) — the Paper veil
-  (`.home-hero__veil`) and the frosted copy panel (`.home-hero__panel`,
-  `backdrop-filter: blur`) keep Ink/mute text at AA contrast over any photo, so
-  no CSS change is needed. Next 16 only accepts `images.qualities` (default
-  `[75]`) — do not pass a custom `quality` prop or the optimizer returns 400.
-- Theme (2026-09-22, owner: "bold, blue and white, mature"; then "one blue, the
-  footer's"): palette in `home.css` is ONE blue, Navy #0B1F4B (text, nav,
-  buttons, chips, numerals, landlord band, footer, focus rings; hover #1A3470),
-  white surfaces, Ice #EEF3FF wash (about section, thumbnails). Components only
-  use the semantic tokens `--ink/--paper/--verify/--mist/--mute/--rule/--focus/
-  --clay`; navy sections (`.home-nav`, `.home-band`, `.home-footer`) re-scope
-  `--ink` and `--focus` to white; white surfaces inside dark areas
-  (`.home-search-wrap`, `.home-phone`) re-scope back to navy. The hero is WHITE:
-  natural-colour photo under a white veil with a white glass panel behind the
-  copy (a navy duotone hero and a cobalt accent were tried and dropped the same
-  day). All text pairings checked ≥ 4.5:1. Fraunces/Geist/Geist Mono unchanged.
-- Live search (2026-09-22): the hero search is a free-text bar ("Search by area or
-  keyword") plus three filter pills (area from real data, bedrooms, max rent).
-  `src/components/home/hero-search.tsx` is a client component; with `live` (homepage
-  only) results appear in a dropdown under the bar as you type (250 ms debounce)
-  or change a filter, each row with the signed cover photo; picking one opens
-  `listing-quick-view.tsx` (native `<dialog>`) on the same page. Nothing
-  navigates except explicit links (/search "Open full results", /waitlist,
-  WhatsApp). Data comes from `GET /api/listings?q&area&bedrooms&max_rent&limit`
-  (`src/app/api/listings/route.ts`, anon view only, CDN cache 60 s). Free text
-  is sanitised in `parseListingQuery` (letters/digits/space/'/- only, 60 chars)
-  and applied as one PostgREST `or(ilike)` per word over headline/area/city, so
-  every word must match. Underneath it is still a plain GET form to /search, and
-  /search uses the same component without `live`. Keyboard: arrows move, Enter
-  opens, Escape closes; ARIA combobox/listbox with aria-activedescendant.
-- Local test listings: `scripts/dev-listings.sh` creates six listed apartments
-  (cover photos cropped from the hero image, uploaded to the LOCAL bucket) for
-  the seeded landlord. Local only; it cannot run against production. It also
-  recreates the `storage.objects (bucket_id, name)` unique index because the
-  local storage-api v1.72.1 drops it in its own migration and then 500s (42P10)
-  on every upload — a local-stack bug, nothing to do with our schema.
+- `/` = transparent navy-text nav over the hero (`site-nav.tsx`, hamburger
+  <details> under 992px) → hero (`.home-hero`: aerial photo, dark gradient
+  overlay, `hero-slider.tsx` text slides from `HERO_SLIDES`, `looking-for.tsx`
+  tiles, `filter-box.tsx` dark variant) → Provided Services (`SERVICES`,
+  `section-title.tsx`) → about (`ABOUT`) → Available apartments (6 newest,
+  `property-grid.tsx` 3 columns) → landlord band → contact → `site-footer.tsx`.
+- `/search` = banner + breadcrumb → sidebar (FilterBox light variant, Areas with
+  counts from `getAreaCounts()`, Contact info from env, Recently added) →
+  results (`SortSelect`, view toggles `?view=2|3|list`, `PropertyGrid`,
+  pagination `?page=`, 6 per page). Params: `q area furnishing bedrooms
+  bathrooms min_rent max_rent min_size max_size sort page view`; all parsed
+  defensively in `parseListingQuery/parsePage/parseView`; slider values at their
+  bound (`RENT_RANGE`/`SIZE_RANGE` in `lib/listings.ts`) mean "no limit".
+- Cards (`property-card.tsx`) and the quick-view `<dialog>`
+  (`listing-quick-view.tsx`) only ever receive the anon view's columns. Clicking
+  a card opens the quick view on the same page (no public detail page exists).
+- Data: `getPublicListingsPage()` (count + range + sort), `getPublicListings()`,
+  `getAreaCounts()`, `getListingAreas()` in `lib/public-listings.ts`; photos are
+  signed server-side (1 h), pages cached 60 s (`/` ISR; `/search` dynamic).
+- Styles: `src/app/home.css` only, scoped under `.home`. Tokens: `--navy`
+  #0B1F4B (the one blue), `--text` #1C2D3A, `--mute` #5B6770 (reference grey
+  darkened to 5.6:1), `--tint` #F7F8FB, `--shadow` 0 0 35px rgba(0,0,0,.08).
+  Buttons: `.btn--gradient` (navy gradient, 8px radius; `--pill` = 30px),
+  `.btn--flat`, `.btn--dashed`, `.btn--white`. Fonts: Montserrat + Roboto via
+  `next/font/google` on both pages (`--font-montserrat`, `--font-roboto`).
+- Hero photo: `public/hero/enugu-aerial.jpg` (owner-supplied). Next 16 only
+  accepts `images.qualities` (default `[75]`) — never pass a custom `quality`.
 - The page reads ONLY public data through `createPublicClient()` (anon key, no
-  cookies) and is cached (`revalidate = 60`); the header is static (no session).
-- PUBLIC LISTINGS = a privacy-safe shape, never the table:
-  `public.public_listings` and `public.public_listing_photos` are
-  `security_barrier` views owned by postgres (so they bypass RLS on purpose),
-  filtered to `status = 'listed'`, projecting only id, headline, area, city,
-  bedrooms, bathrooms, size, furnishing, amenities, available_from, annual_rent,
-  listed_at (and photo paths). No address, landlord, status, reasons or
-  threshold — anon has no grant on `properties` or `property_photos`. Photos are
-  signed server-side with the service role (1 h); the bucket stays private.
-  `properties.area` (neighbourhood) is the public location; staff set it in the
-  listing editor. This reverses Step 7's "browse is verified-tenants-only" for
-  the PUBLIC surfaces only; `/tenant/browse` keeps its verified-tenant gate as
-  the signed-in experience (it still shows the street address).
-- `/search` — public results for the hero search (area / bedrooms / max rent via
-  GET). Zero results is a first-class state that offers the priority list.
-- Contact form → `contact_messages` via `submit_contact_message()` (SECURITY
-  DEFINER, rate-limited 5/hour per hashed IP and 3/day per WhatsApp number; the
-  only write path — no anon INSERT policy on purpose). Staff/admin select. No
-  email is sent. Channels come from `NEXT_PUBLIC_CONTACT_WHATSAPP` /
-  `NEXT_PUBLIC_CONTACT_EMAIL`; unset = not shown, nothing invented.
-- `next/image` is used for photos; `images.remotePatterns` is derived from
-  `NEXT_PUBLIC_SUPABASE_URL` in `next.config.ts`.
+  cookies); the header is static (no session).
+- Local test listings: `scripts/dev-listings.sh` (six listed fixtures with cover
+  photos; also recreates the `storage.objects (bucket_id, name)` unique index
+  because local storage-api v1.72.1 drops it and then 500s on uploads).
+- Contact form → `submit_contact_message()` RPC (rate-limited; the only write
+  path); `/waitlist` copy rules unchanged.
 
 ## Property listings (Step 7, built 2026-09-22)
 
