@@ -348,3 +348,10 @@ Hosting: GitHub (`chimaobi-dennis/homeLy`, `main` = production) → Vercel
 4. Never send real emails/SMS/WhatsApp from tests or local dev.
 5. Stage 1 tenants stay account-less. Tenant accounts exist only via Stage 2
    conversion invites (Step 5); do not add self-service tenant sign-up.
+6. **Production database access is the owner's alone.** Never run `db push` or
+   `db reset --linked` against the cloud project. For every new migration, hand
+   the owner the SQL to run in the Supabase SQL Editor together with the
+   `supabase_migrations.schema_migrations` insert (DEPLOYMENT.md §7c), then
+   verify read-only with `db push --dry-run`. Only a remote reset with
+   `--no-seed` is ever acceptable, and only the owner runs it.
+7. The seeded dev accounts must not exist on production (DEPLOYMENT.md §7b).

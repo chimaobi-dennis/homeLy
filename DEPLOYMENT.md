@@ -251,6 +251,49 @@ Against the production URL, in this order:
 
 ---
 
+## 7b. Hardening checklist — run ONCE all three connections work (GitHub → Vercel → Supabase)
+
+Do these in order, only after the smoke test in §7 passes end to end. Until this
+list is done, the production project is NOT safe to share.
+
+- [ ] **Delete the three seeded dev accounts on the cloud project.** A remote
+      reset (`db reset --linked`) also runs `supabase/seed.sql`, which creates
+      `admin@homely.local`, `staff@homely.local` and `landlord@homely.local`
+      with the password written in this repo. Dashboard → Authentication →
+      Users → delete all three (profiles and the landlords row cascade).
+- [ ] **Create the owner's real admin account** (§6). After this, the owner is
+      the only person who can sign in with the admin tag.
+- [ ] **Confirm nobody else holds database access:** the `sb_secret_…` key
+      exists only in Vercel env vars (Production + Preview) and the owner's
+      password manager — never in chat, never committed, never `NEXT_PUBLIC_`.
+      Rotate it in the dashboard if it was ever exposed.
+- [ ] **Any future remote reset uses `--no-seed`:**
+      `npm exec supabase -- db reset --linked --no-seed`.
+- [ ] Re-run the §7 smoke test as the real admin.
+
+## 7c. Migrations after go-live — hand-off workflow
+
+From this point the owner applies schema changes by hand, so that only the owner
+ever holds a connection to the production database. For every new migration
+Claude:
+
+1. writes `supabase/migrations/<version>_<name>.sql` as usual, verifies it
+   locally (`npm run db:reset && npm run db:test`), and commits it;
+2. hands the owner the file's SQL to paste into Dashboard → SQL Editor, **plus**
+   this one extra statement so the CLI's history stays honest and `db push`
+   never tries to re-apply it:
+
+   ```sql
+   insert into supabase_migrations.schema_migrations (version, name)
+   values ('<version>', '<name>');
+   ```
+
+3. asks the owner to confirm, then checks with
+   `npm exec supabase -- db push --dry-run` (read-only) that the remote reports
+   "up to date".
+
+Claude does not run `db push` or `db reset --linked` against production.
+
 ## 8. What is still a stub after this deploy
 
 Unchanged by deployment — all of these log instead of acting:
