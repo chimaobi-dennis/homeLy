@@ -3,7 +3,7 @@ import Link from "next/link";
 /** Static header for the public homepage/search pages (no session read, so the page can be cached). */
 export function SiteNav() {
   return (
-    <header className="border-b border-[var(--rule)] bg-[var(--paper)]">
+    <header className="home-nav border-b border-[var(--rule)]">
       <div className="wrap flex min-h-14 items-center justify-between gap-4 py-2 text-sm">
         <Link href="/" className="display text-2xl leading-none text-[var(--ink)]">
           HomeLy

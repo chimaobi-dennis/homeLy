@@ -288,8 +288,7 @@ Placeholder copy lives in `src/lib/content/enugu-ops.ts` (square brackets = repl
 
 - `/` is now: hero (search pill → `/search`) · why choose us · about · available
   apartments (6 newest listed) · landlord band → /landlord/apply · contact · footer.
-  Files: `src/app/page.tsx`, `src/app/home.css` (tokens + Mist #E8EDEB, Signal
-  #2FA37C; Gold = focus rings/rules only), `src/components/home/*`,
+  Files: `src/app/page.tsx`, `src/app/home.css`, `src/components/home/*`,
   `src/lib/content/homepage.ts`. The persona-toggle homepage (be5839d) is gone;
   the landlord trust content still lives at /landlord/apply.
 - Hero background = owner's aerial photo of Enugu at `public/hero/enugu-aerial.jpg`
@@ -299,6 +298,17 @@ Placeholder copy lives in `src/lib/content/enugu-ops.ts` (square brackets = repl
   `backdrop-filter: blur`) keep Ink/mute text at AA contrast over any photo, so
   no CSS change is needed. Next 16 only accepts `images.qualities` (default
   `[75]`) — do not pass a custom `quality` prop or the optimizer returns 400.
+- Theme (2026-09-22, owner asked for "bold, blue and white, mature"): palette in
+  `home.css` is Navy #0B1F4B (text, nav, hero, footer), Cobalt #1849D6 (every
+  action, chips, numerals, landlord band; hover #10339C), white surfaces, Ice
+  #EEF3FF wash (about section, thumbnails), Azure #3B82F6 (focus ring on white,
+  halo). Components only use the semantic tokens `--ink/--paper/--verify/--mist/
+  --mute/--rule/--focus/--clay`; dark sections (`.home-nav`, `.home-hero`,
+  `.home-band`, `.home-footer`) re-scope `--ink` to white and `--focus` to white,
+  and white surfaces inside them (`.home-search-wrap`, `.home-phone`) re-scope
+  back to navy. The hero photo is rendered as a navy duotone (grayscale +
+  `mix-blend-mode: luminosity` over the navy hero, cobalt glow top-left). All
+  text pairings checked ≥ 4.5:1. Fraunces/Geist/Geist Mono unchanged.
 - Live search (2026-09-22): the hero search is a free-text bar ("Search by area or
   keyword") plus three filter pills (area from real data, bedrooms, max rent).
   `src/components/home/hero-search.tsx` is a client component; with `live` (homepage

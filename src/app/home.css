@@ -1,13 +1,23 @@
-/* Homepage-only styles. Scoped under .home so no other route is affected. Fixed light look. */
+/* Homepage-only styles. Scoped under .home so no other route is affected. Fixed light look.
+   Theme (2026-09-22): bold blue and white. Navy for text and dark bands, cobalt for every
+   action, white surfaces, an ice-blue wash for alternate sections. */
 
 .home {
-  --ink: #14171a;
-  --paper: #f6f5f1;
-  --verify: #1c6b52;
-  --gold: #b8862e;   /* focus rings + rules ONLY: 2.9:1 on Paper, never text */
-  --clay: #9c4a32;
-  --mist: #e8edeb;   /* cool wash */
-  --signal: #2fa37c; /* live / interactive accents (never body text on Paper) */
+  /* Palette */
+  --navy: #0b1f4b;      /* deep navy: headlines, nav, hero, footer */
+  --blue: #1849d6;      /* cobalt: buttons, links, chips, landlord band */
+  --blue-deep: #10339c; /* cobalt hover */
+  --azure: #3b82f6;     /* live accents: halo, focus ring on white */
+  --ice: #eef3ff;       /* light blue wash */
+
+  /* Semantic tokens (components only ever use these) */
+  --ink: var(--navy);
+  --paper: #ffffff;
+  --verify: var(--blue);
+  --focus: var(--azure); /* focus rings ONLY (3.7:1 on white); flipped to white on navy */
+  --clay: #b3261e;       /* errors */
+  --mist: var(--ice);
+  --signal: var(--azure);
   --mute: color-mix(in srgb, var(--ink) 66%, var(--paper));
   --rule: color-mix(in srgb, var(--ink) 14%, var(--paper));
   --radius: 12px;
@@ -35,7 +45,7 @@
 }
 
 .home :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline: 2px solid var(--gold);
+  outline: 2px solid var(--focus);
   outline-offset: 3px;
   border-radius: 4px;
 }
@@ -68,7 +78,7 @@
   transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
 }
 .home .pill--verify { background: var(--verify); border-color: var(--verify); color: #fff; }
-.home .pill--verify:hover { background: color-mix(in srgb, var(--verify) 86%, var(--ink)); }
+.home .pill--verify:hover { background: var(--blue-deep); border-color: var(--blue-deep); }
 .home .pill--paper { background: var(--paper); border-color: var(--paper); color: var(--ink); }
 .home .pill--paper:hover { background: color-mix(in srgb, var(--paper) 88%, var(--ink)); }
 .home .pill--outline { background: transparent; border-color: var(--ink); color: var(--ink); }
@@ -81,8 +91,8 @@
   min-height: 1.6rem;
   padding: 0.15rem 0.6rem;
   border-radius: 999px;
-  background: var(--signal);
-  color: var(--ink);
+  background: var(--verify);
+  color: #fff;
   font-size: 0.72rem;
   font-weight: 600;
 }
@@ -91,7 +101,18 @@
   width: 0.45rem;
   height: 0.45rem;
   border-radius: 999px;
-  background: var(--ink);
+  background: #fff;
+}
+
+/* ---------- Nav (navy, continuous with the hero) ---------- */
+
+.home-nav {
+  --ink: #fff;
+  --mute: color-mix(in srgb, #fff 74%, var(--navy));
+  --rule: color-mix(in srgb, #fff 14%, transparent);
+  --focus: #fff;
+  background: var(--navy);
+  color: #fff;
 }
 
 /* ---------- Hero ---------- */
@@ -99,50 +120,58 @@
 .home-hero {
   position: relative;
   z-index: 1; /* the search dropdown must paint above the sections below */
-  isolation: isolate; /* keeps the photo's negative z-index inside the hero */
-  background: linear-gradient(180deg, var(--paper) 0%, var(--mist) 100%); /* fallback until the photo paints */
+  isolation: isolate; /* keeps the photo's negative z-index inside the hero, and scopes the blend */
+  --ink: #fff;
+  --mute: color-mix(in srgb, #fff 76%, var(--navy));
+  --focus: #fff;
+  color: #fff;
+  background: var(--navy);
   /* No overflow clipping: the live-search dropdown hangs below the panel. Nothing inside
      bleeds horizontally (halo inset 0; the −40px visual margin only ≥1360px). */
 }
 
-/* The aerial photo: sharp where the phone sits (right), veiled where the copy sits (left). */
+/* The aerial photo as a navy duotone: luminosity blend takes the photo's light and dark from
+   the picture and the hue from the navy behind it. Sharpest under the phone (right). */
 .home-hero__bg {
   object-fit: cover;
   object-position: 62% 55%;
   z-index: -2;
-  filter: saturate(0.95);
+  filter: grayscale(1) contrast(1.08) brightness(0.92);
+  mix-blend-mode: luminosity;
+  opacity: 0.9;
 }
 
-/* Legibility veil, not decoration: Paper fades in from the left and up from the bottom so the
-   hero hands over cleanly to the next section. The right third stays nearly clear. */
+/* Legibility veil, not decoration: navy deepens towards the copy side and a cobalt glow sits
+   top-left so the block reads blue, not black. The right third stays clearest for the phone. */
 .home-hero__veil {
   position: absolute;
   inset: 0;
   z-index: -1;
   pointer-events: none;
   background:
+    linear-gradient(125deg, color-mix(in srgb, var(--blue) 42%, transparent) 0%, transparent 55%),
     linear-gradient(
       90deg,
-      color-mix(in srgb, var(--paper) 92%, transparent) 0%,
-      color-mix(in srgb, var(--paper) 72%, transparent) 40%,
-      color-mix(in srgb, var(--paper) 22%, transparent) 66%,
-      color-mix(in srgb, var(--paper) 6%, transparent) 100%
-    ),
-    linear-gradient(180deg, transparent 72%, var(--paper) 100%);
+      color-mix(in srgb, var(--navy) 90%, transparent) 0%,
+      color-mix(in srgb, var(--navy) 68%, transparent) 42%,
+      color-mix(in srgb, var(--navy) 22%, transparent) 68%,
+      color-mix(in srgb, var(--navy) 8%, transparent) 100%
+    );
 }
 @media (max-width: 767px) {
   .home-hero__veil {
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--paper) 84%, transparent) 0%, color-mix(in srgb, var(--paper) 40%, transparent) 58%, var(--paper) 100%);
+      linear-gradient(125deg, color-mix(in srgb, var(--blue) 40%, transparent) 0%, transparent 60%),
+      linear-gradient(180deg, color-mix(in srgb, var(--navy) 86%, transparent) 0%, color-mix(in srgb, var(--navy) 42%, transparent) 60%, color-mix(in srgb, var(--navy) 70%, transparent) 100%);
   }
 }
 
-/* Frosted Paper panel behind the copy + search: guarantees Ink-on-Paper contrast over any photo. */
+/* Navy glass panel behind the copy + search: white type stays legible over any photo. */
 .home-hero__panel {
-  background: color-mix(in srgb, var(--paper) 80%, transparent);
-  -webkit-backdrop-filter: blur(18px) saturate(1.15);
-  backdrop-filter: blur(18px) saturate(1.15);
-  border: 1px solid color-mix(in srgb, #ffffff 60%, transparent);
+  background: color-mix(in srgb, var(--navy) 52%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  backdrop-filter: blur(18px) saturate(1.2);
+  border: 1px solid color-mix(in srgb, #ffffff 16%, transparent);
   border-radius: var(--radius);
   padding: 1.5rem 1.25rem;
 }
@@ -178,17 +207,25 @@
   .home-hero__visual { margin-right: -40px; }
 }
 
-/* The one allowed halo: static Signal radial at 8% behind the visual. */
+/* The one allowed halo: a static cobalt glow behind the phone. */
 .home-hero__halo {
   position: absolute;
   inset: 0;
-  background: radial-gradient(60% 60% at 60% 45%, color-mix(in srgb, var(--signal) 8%, transparent) 0%, transparent 70%);
+  background: radial-gradient(60% 60% at 60% 45%, color-mix(in srgb, var(--azure) 30%, transparent) 0%, transparent 70%);
   pointer-events: none;
 }
 
 /* ---------- Search: bar + filters + live results ---------- */
 
-.home-search-wrap { position: relative; }
+.home-search-wrap {
+  position: relative;
+  /* White surfaces (bar, pills, dropdown, dialog) always use navy type, even inside the navy hero. */
+  --ink: var(--navy);
+  --mute: color-mix(in srgb, var(--navy) 66%, #fff);
+  --focus: var(--azure);
+  color: var(--ink);
+}
+.home-hero .home-search__clear { color: #fff; } /* sits on the navy, not on a white pill */
 
 .home-search__bar {
   display: grid;
@@ -202,7 +239,7 @@
 }
 .home-search__bar:focus-within {
   border-color: var(--ink);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 38%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--azure) 55%, transparent);
 }
 .home-search__icon { color: var(--mute); flex: none; }
 .home-search__input {
@@ -231,7 +268,7 @@
   font-weight: 600;
   font-size: 0.95rem;
 }
-.home-search__submit:hover { background: color-mix(in srgb, var(--verify) 86%, var(--ink)); }
+.home-search__submit:hover { background: var(--blue-deep); }
 .home-search__submit span { display: none; }
 @media (min-width: 480px) {
   .home-search__submit { padding: 0 1.1rem 0 0.9rem; }
@@ -253,7 +290,7 @@
   padding: 0 0.4rem 0 0.85rem;
   border: 1px solid var(--rule);
   border-radius: 999px;
-  background: color-mix(in srgb, #fff 78%, transparent);
+  background: #fff;
   font-size: 0.85rem;
   color: var(--mute);
 }
@@ -290,7 +327,7 @@
   background: #fff;
   border: 1px solid var(--rule);
   border-radius: 16px;
-  box-shadow: 0 24px 48px -20px rgba(20, 23, 26, 0.35);
+  box-shadow: 0 24px 48px -20px rgba(11, 31, 75, 0.45);
 }
 .home-results__group {
   font-size: 0.72rem;
@@ -381,11 +418,11 @@
   border-radius: 16px;
   background: #fff;
   color: var(--ink);
-  box-shadow: 0 40px 80px -30px rgba(20, 23, 26, 0.5);
+  box-shadow: 0 40px 80px -30px rgba(11, 31, 75, 0.6);
   overflow: auto;
 }
 .home-quick::backdrop {
-  background: rgba(20, 23, 26, 0.55);
+  background: rgba(11, 31, 75, 0.6);
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
 }
@@ -452,11 +489,18 @@
   margin-inline: auto;
   aspect-ratio: 9 / 19;
   border-radius: 44px;
-  background: var(--ink);
+  background: #071431;
   padding: 10px;
   transform: rotate(-4deg);
-  /* One soft device shadow so the phone lifts off the aerial photo (not a card shadow). */
-  box-shadow: 0 32px 64px -24px rgba(20, 23, 26, 0.5), 0 10px 20px -12px rgba(20, 23, 26, 0.3);
+  /* Screen content keeps navy type on white. */
+  --ink: var(--navy);
+  --mute: color-mix(in srgb, var(--navy) 66%, #fff);
+  color: var(--ink);
+  /* One soft device shadow + a light edge so the phone lifts off the navy hero. */
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, #fff 22%, transparent),
+    0 32px 64px -24px rgba(3, 10, 30, 0.7),
+    0 10px 20px -12px rgba(3, 10, 30, 0.5);
 }
 .home-phone__screen {
   position: relative;
@@ -475,7 +519,7 @@
   width: 34%;
   height: 20px;
   border-radius: 999px;
-  background: var(--ink);
+  background: #071431;
   z-index: 2;
 }
 .home-phone__bar {
@@ -532,7 +576,7 @@
   padding-top: 1.25rem;
   border-top: 1px solid var(--rule);
 }
-.home-why__num { color: var(--mute); font-size: 0.9rem; padding-top: 0.35rem; }
+.home-why__num { color: var(--blue); font-size: 0.9rem; font-weight: 600; padding-top: 0.35rem; }
 @media (min-width: 900px) {
   .home-why { grid-template-columns: repeat(12, minmax(0, 1fr)); row-gap: 2.5rem; }
   .home-why__item:nth-child(1) { grid-column: 1 / 7; }
@@ -543,9 +587,10 @@
 
 /* ---------- Bands ---------- */
 
-.home-band { background: var(--ink); color: var(--paper); }
-.home-band a.pill--paper:focus-visible { outline-color: var(--gold); }
-.home-footer { background: var(--ink); color: color-mix(in srgb, var(--paper) 78%, var(--ink)); }
+.home-band { background: var(--blue); color: #fff; --ink: #fff; --focus: #fff; }
+.home-band .pill--paper { color: var(--navy); } /* white pill keeps navy type on the cobalt band */
+.home-band a.pill--paper:focus-visible { outline-color: #fff; }
+.home-footer { background: var(--navy); color: color-mix(in srgb, #fff 74%, var(--navy)); --focus: #fff; }
 .home-footer a { color: var(--paper); }
 
 /* ---------- Reveals: pure CSS, progressive, OFF under reduced motion ---------- */

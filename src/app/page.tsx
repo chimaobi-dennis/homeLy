@@ -155,7 +155,7 @@ export default async function Home() {
             <h2 id="landlord-heading" className="display max-w-[30rem] text-3xl sm:text-4xl">
               {LANDLORD_BAND.heading}
             </h2>
-            <p className="mt-3 max-w-[32rem] text-[color-mix(in_srgb,var(--paper)_78%,var(--ink))]">{LANDLORD_BAND.body}</p>
+            <p className="mt-3 max-w-[32rem] text-[color-mix(in_srgb,#fff_88%,var(--navy))]">{LANDLORD_BAND.body}</p>
           </div>
           <Link href="/landlord/apply" className="pill pill--paper">
             {LANDLORD_BAND.cta}
