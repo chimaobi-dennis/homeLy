@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces } from "next/font/google";
+import Image from "next/image";
 import Link from "next/link";
 import { ContactForm } from "@/components/home/contact-form";
 import { HeroSearch } from "@/components/home/hero-search";
@@ -35,21 +36,36 @@ export default async function Home() {
 
       {/* ---------------- 1. Hero ---------------- */}
       <section className="home-hero" aria-labelledby="hero-heading">
+        {/* Owner-supplied aerial photo of Enugu (public/hero/enugu-aerial.jpg). Swap the file to change it;
+            the veil + frosted panel keep the copy readable whatever the photo looks like. LCP element:
+            priority, fill, fixed hero height → no layout shift. */}
+        <Image
+          src="/hero/enugu-aerial.jpg"
+          alt=""
+          fill
+          priority
+          fetchPriority="high"
+          sizes="100vw"
+          className="home-hero__bg"
+        />
+        <div className="home-hero__veil" aria-hidden="true" />
         <div className="wrap home-hero__grid">
           <div className="home-hero__copy">
-            <h1 id="hero-heading" className="display text-[2.4rem] sm:text-[3.1rem] lg:text-[3.6rem]">
-              {HERO.h1}
-            </h1>
-            <p className="mt-5 max-w-[34rem] text-lg leading-relaxed text-[var(--mute)]">{HERO.sub}</p>
-            <div className="mt-7">
-              <HeroSearch areas={areas} />
+            <div className="home-hero__panel">
+              <h1 id="hero-heading" className="display text-[2.4rem] sm:text-[3rem] lg:text-[3.4rem]">
+                {HERO.h1}
+              </h1>
+              <p className="mt-5 max-w-[34rem] text-lg leading-relaxed text-[var(--mute)]">{HERO.sub}</p>
+              <div className="mt-7">
+                <HeroSearch areas={areas} />
+              </div>
+              <p className="mt-3 text-sm text-[var(--mute)]">{HERO.micro}</p>
+              <p className="mt-4 text-sm">
+                <Link href="/waitlist" className="text-[var(--ink)] underline underline-offset-4">
+                  {HERO.notReady}
+                </Link>
+              </p>
             </div>
-            <p className="mt-3 text-sm text-[var(--mute)]">{HERO.micro}</p>
-            <p className="mt-4 text-sm">
-              <Link href="/waitlist" className="text-[var(--ink)] underline underline-offset-4">
-                {HERO.notReady}
-              </Link>
-            </p>
           </div>
           <div className="home-hero__visual">
             <div className="home-hero__halo" aria-hidden="true" />

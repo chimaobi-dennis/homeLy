@@ -292,6 +292,13 @@ Placeholder copy lives in `src/lib/content/enugu-ops.ts` (square brackets = repl
   #2FA37C; Gold = focus rings/rules only), `src/components/home/*`,
   `src/lib/content/homepage.ts`. The persona-toggle homepage (be5839d) is gone;
   the landlord trust content still lives at /landlord/apply.
+- Hero background = owner's aerial photo of Enugu at `public/hero/enugu-aerial.jpg`
+  (1079×922, ~256 KB; rendered with `next/image` `fill` + `priority`, it is the
+  LCP element). To change it, replace the file (same name) — the Paper veil
+  (`.home-hero__veil`) and the frosted copy panel (`.home-hero__panel`,
+  `backdrop-filter: blur`) keep Ink/mute text at AA contrast over any photo, so
+  no CSS change is needed. Next 16 only accepts `images.qualities` (default
+  `[75]`) — do not pass a custom `quality` prop or the optimizer returns 400.
 - The page reads ONLY public data through `createPublicClient()` (anon key, no
   cookies) and is cached (`revalidate = 60`); the header is static (no session).
 - PUBLIC LISTINGS = a privacy-safe shape, never the table:

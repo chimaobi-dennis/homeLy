@@ -98,10 +98,60 @@
 
 .home-hero {
   position: relative;
-  background: linear-gradient(180deg, var(--paper) 0%, var(--mist) 100%);
+  isolation: isolate; /* keeps the photo's negative z-index inside the hero */
+  background: linear-gradient(180deg, var(--paper) 0%, var(--mist) 100%); /* fallback until the photo paints */
   overflow: hidden;
 }
+
+/* The aerial photo: sharp where the phone sits (right), veiled where the copy sits (left). */
+.home-hero__bg {
+  object-fit: cover;
+  object-position: 62% 55%;
+  z-index: -2;
+  filter: saturate(0.95);
+}
+
+/* Legibility veil, not decoration: Paper fades in from the left and up from the bottom so the
+   hero hands over cleanly to the next section. The right third stays nearly clear. */
+.home-hero__veil {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--paper) 92%, transparent) 0%,
+      color-mix(in srgb, var(--paper) 72%, transparent) 40%,
+      color-mix(in srgb, var(--paper) 22%, transparent) 66%,
+      color-mix(in srgb, var(--paper) 6%, transparent) 100%
+    ),
+    linear-gradient(180deg, transparent 72%, var(--paper) 100%);
+}
+@media (max-width: 767px) {
+  .home-hero__veil {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--paper) 84%, transparent) 0%, color-mix(in srgb, var(--paper) 40%, transparent) 58%, var(--paper) 100%);
+  }
+}
+
+/* Frosted Paper panel behind the copy + search: guarantees Ink-on-Paper contrast over any photo. */
+.home-hero__panel {
+  background: color-mix(in srgb, var(--paper) 80%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+  backdrop-filter: blur(18px) saturate(1.15);
+  border: 1px solid color-mix(in srgb, #ffffff 60%, transparent);
+  border-radius: var(--radius);
+  padding: 1.5rem 1.25rem;
+}
+@media (min-width: 768px) {
+  .home-hero__panel { padding: 1.75rem; }
+}
+@media (min-width: 1024px) {
+  .home-hero__panel { padding: 2.25rem; }
+}
 .home-hero__grid {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 1.5rem;
@@ -113,6 +163,10 @@
 
 @media (min-width: 768px) {
   .home-hero__grid { padding-block: 4.5rem 5rem; }
+  .home-hero__copy { grid-column: 1 / 8; }
+  .home-hero__visual { grid-column: 8 / 13; }
+}
+@media (min-width: 1024px) {
   .home-hero__copy { grid-column: 1 / 7; }
   .home-hero__visual { grid-column: 7 / 13; }
 }
@@ -173,7 +227,7 @@
 }
 .home-search__submit:hover { background: color-mix(in srgb, var(--verify) 86%, var(--ink)); }
 
-@media (min-width: 768px) {
+@media (min-width: 1024px) {
   .home-search {
     grid-template-columns: 1.3fr 1fr 1.1fr auto;
     align-items: center;
@@ -194,6 +248,8 @@
   background: var(--ink);
   padding: 10px;
   transform: rotate(-4deg);
+  /* One soft device shadow so the phone lifts off the aerial photo (not a card shadow). */
+  box-shadow: 0 32px 64px -24px rgba(20, 23, 26, 0.5), 0 10px 20px -12px rgba(20, 23, 26, 0.3);
 }
 .home-phone__screen {
   position: relative;
