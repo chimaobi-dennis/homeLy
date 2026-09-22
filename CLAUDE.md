@@ -492,3 +492,11 @@ Hosting: GitHub (`chimaobi-dennis/homeLy`, `main` = production) → Vercel
    verify read-only with `db push --dry-run`. Only a remote reset with
    `--no-seed` is ever acceptable, and only the owner runs it.
 7. The seeded dev accounts must not exist on production (DEPLOYMENT.md §7b).
+8. **Push after every edit** (owner instruction, 2026-09-22): once a change is
+   verified (typecheck, lint, build, browser check) and committed, push `main`
+   without waiting to be asked, then confirm the Vercel deployment is Ready and
+   the affected production URLs return 200. Pushing deploys production, so the
+   one exception stands: if the commit contains a new migration, first check
+   `npx supabase migration list --linked` shows it on the cloud (the owner
+   applies migrations by hand, rule 6); if it is not there, do NOT push — hand
+   over the SQL and say the push is waiting on it.
